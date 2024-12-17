@@ -9,8 +9,9 @@
     - [ ] etcd
     - [ ] redis
 - [ ] 桥通信(BridgeChannel)
-    - [ ] websocket
-    - [ ] tcp
+    - [ ] http(s)
+    - [ ] websocket(s)
+    - [ ] tcp(tls)
     - [ ] quic
     - [ ] p2p
     - [ ] mqtt

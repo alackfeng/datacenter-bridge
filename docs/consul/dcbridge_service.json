@@ -1,0 +1,18 @@
+{
+    "services": [
+      {
+        "id": "dcb1-node-service",
+        "name": "gw-dcb-service",
+        "tags": ["urlprefix-"],
+        "address": "10.16.3.66",
+        "port": 9500,
+        "check": {
+          "http": "http://10.16.3.66:9500/health",
+          "tls_skip_verify": false,
+          "method": "GET",
+          "interval": "10s",
+          "timeout": "1s"
+        }
+      }
+    ]
+  }

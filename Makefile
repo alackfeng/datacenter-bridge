@@ -10,26 +10,28 @@ GOMOD=$(GOCMD) mod
 
 # Binary names
 BINARY_EXE=$(shell go env GOEXE)
-BINARY_NAME=dcenter_bridge_client$(BINARY_EXE)
+BINARY_CLIENT_NAME=dcenter_bridge_client$(BINARY_EXE)
+BINARY_SERVER_NAME=dcenter_bridge_server$(BINARY_EXE)
 SWAG_BIN=$(shell go env GOPATH)/bin/swag
 
 all: build
 
 
-.PHONY: dcenter_bridge_client
-dcenter_bridge_client:
-	$(GOBUILD) -o bin/$(BINARY_NAME) -v -gcflags '-N -l' examples/client/client.go
+.PHONY: dcenter_bridge
+dcenter_bridge:
+	$(GOBUILD) -o bin/$(BINARY_CLIENT_NAME) -v -gcflags '-N -l' examples/client/client.go
+	$(GOBUILD) -o bin/$(BINARY_SERVER_NAME) -v -gcflags '-N -l' examples/server/main.go
 
 .PHONY: docs
 docs:
 	$(SWAG_BIN) init -g main.go -o docs/swagger
 
 .PHONY: build
-build: dcenter_bridge_client
+build: dcenter_bridge
 
 .PHONY: run
 run:
-	$(GORUN) -v examples/client/client.go
+	$(GORUN) -v examples/server/main.go
 
 .PHONY: dock
 dock: dock-build dock-push
