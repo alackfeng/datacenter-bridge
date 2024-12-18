@@ -19,7 +19,7 @@ var consulHost string
 
 func main() {
 	flag.BoolVar(&release, "release", false, "run as release mode")
-	flag.StringVar(&host, "host", "ws://10.16.3.66:9500", "server host")
+	flag.StringVar(&host, "host", "ws://10.16.3.66:9500/bridge", "server host")
 	flag.StringVar(&consulHost, "consul", "http://127.0.0.1:8500", "consul host")
 	flag.Parse()
 
@@ -35,9 +35,8 @@ func main() {
 		Host: consulHost,
 	}
 	config.Servers.Ws = datacenterbridge.WebsocketConfigure{
-		Up:     true,
-		Host:   host,
-		Prefix: "/bridge",
+		Up:   true,
+		Host: host,
 	}
 	dcBridge := datacenterbridge.NewDCenterBridgeWithConfig(ctx, done, config)
 	if err := dcBridge.ListenAndServe(); err != nil {

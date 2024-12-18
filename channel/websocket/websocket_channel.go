@@ -1,41 +1,57 @@
 package websocket
 
 import (
+	"errors"
+	"sync"
+	"time"
+
 	"github.com/alackfeng/datacenter-bridge/channel"
+	"github.com/alackfeng/datacenter-bridge/discovery"
+	"github.com/alackfeng/datacenter-bridge/logger"
 	"github.com/gorilla/websocket"
+)
+
+var (
+	ErrDoneChannelClosed = errors.New("done chan closed")
+	ErrOutChannelFull    = errors.New("out chan full")
 )
 
 // WebsocketChannel - websocket通道对象, 进行收发操作.
 type WebsocketChannel struct {
+	self        discovery.Service // 身份标识.
+	peer        discovery.Service // 对端身份.
 	config      WebsocketConfig
 	conn        *websocket.Conn
-	done        chan struct{}
+	closeOnce   sync.Once
+	doneChan    chan struct{}
 	inChan      chan []byte
 	outChan     chan []byte
 	isConnected bool
-	isClinet    bool
+	isClient    bool
 }
 
 var _ channel.Channel = (*WebsocketChannel)(nil)
 
 // newWebsocketServerChannel -
-func newWebsocketServerChannel(config *WebsocketConfig) *WebsocketChannel {
-	w := newWebsocketChannel(config, false)
+func newWebsocketServerChannel(self *discovery.Service, peer *discovery.Service, config *WebsocketConfig) *WebsocketChannel {
+	w := newWebsocketChannel(self, peer, config, false)
 	return w
 }
 
 // newWebsocketClientChannel -
-func newWebsocketClientChannel(config *WebsocketConfig) *WebsocketChannel {
-	return newWebsocketChannel(config, true)
+func newWebsocketClientChannel(self *discovery.Service, peer *discovery.Service) *WebsocketChannel {
+	return newWebsocketChannel(self, peer, NewWebsocketConfig(peer.Host), true)
 }
 
 // newWebsocketChannel -
-func newWebsocketChannel(config *WebsocketConfig, isClinet bool) *WebsocketChannel {
+func newWebsocketChannel(self *discovery.Service, peer *discovery.Service, config *WebsocketConfig, isClient bool) *WebsocketChannel {
 	return &WebsocketChannel{
+		self:        *self,
+		peer:        *peer,
 		config:      *config,
-		isClinet:    isClinet,
+		isClient:    isClient,
 		isConnected: false,
-		done:        make(chan struct{}),
+		doneChan:    make(chan struct{}),
 		inChan:      make(chan []byte, config.InChanCount),
 		outChan:     make(chan []byte, config.OutChanCount),
 	}
@@ -47,43 +63,132 @@ func (c *WebsocketChannel) init(conn *websocket.Conn) *WebsocketChannel {
 	return c
 }
 
-// Read -
-func (c *WebsocketChannel) Read() {
+// ID - service.Id.
+func (c *WebsocketChannel) ID() string {
+	return c.peer.Id
+}
+
+// Key - zone_service.
+func (c *WebsocketChannel) Key() string {
+	return c.self.Key()
+}
+
+// DoneChan -
+func (c *WebsocketChannel) DoneChan() chan struct{} {
+	return c.doneChan
+}
+
+// InChan -
+func (c *WebsocketChannel) InChan() chan []byte {
+	return c.inChan
+}
+
+// ReadLoop -
+func (c *WebsocketChannel) ReadLoop() {
+	logger.Warnf("websocket channel read loop, %s", c.self.Id)
 	defer func() {
-		close(c.done)
-		c.conn.Close()
+		c.Close()
 	}()
 
 	c.conn.SetReadLimit(c.config.ReadLimit)
 	c.conn.SetReadDeadline(c.config.ReadDeadline())
-	c.conn.SetPongHandler(func(appData string) error {
-		c.conn.SetReadDeadline(c.config.ReadDeadline())
-		return nil
-	})
-
-	for {
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
-			return
-		}
-		c.inChan <- message
+	if c.isClient {
+		c.conn.SetPongHandler(func(data string) error {
+			logger.Warnf("websocket channel recv pong message, %s", data)
+			c.conn.SetReadDeadline(c.config.ReadDeadline())
+			return nil
+		})
+	} else {
+		c.conn.SetPingHandler(func(data string) error {
+			logger.Warnf("websocket channel recv ping message %s", data)
+			c.conn.SetReadDeadline(c.config.ReadDeadline())
+			if err := c.conn.WriteControl(websocket.PongMessage, []byte{}, c.config.WriteDeadline()); err != nil {
+				logger.Errorf("websocket channel write pong message error, %s", err.Error())
+				return err
+			}
+			return nil
+		})
 	}
-}
 
-func (c *WebsocketChannel) Write() {
 	for {
 		select {
-		case message := <-c.outChan:
-			err := c.conn.WriteMessage(websocket.TextMessage, message)
+		case <-c.doneChan:
+			logger.Warnf("websocket channel done closed, %s", c.self.Id)
+			return
+		default:
+			messageType, message, err := c.conn.ReadMessage()
 			if err != nil {
 				return
 			}
-		case <-c.done:
-			return
+			logger.Debugf("websocket channel read message<%d> %s", messageType, message)
+			c.inChan <- message
 		}
 	}
 }
 
-func (c *WebsocketChannel) Colse() error {
+// writeMessage -
+func (c *WebsocketChannel) writeMessage(messageType int, data []byte) error {
+	err := c.conn.WriteMessage(messageType, data)
+	if err != nil {
+		return err
+	}
+	c.conn.SetWriteDeadline(c.config.WriteDeadline())
+	return nil
+}
+
+func (c *WebsocketChannel) SendSafe(data []byte) error {
+	select {
+	case c.outChan <- data:
+		return nil
+	case <-c.doneChan:
+		return ErrDoneChannelClosed
+	default:
+		return ErrOutChannelFull
+	}
+}
+
+// WriteLoop -
+func (c *WebsocketChannel) WriteLoop() {
+	logger.Warnf("websocket channel write loop, %s", c.self.Id)
+	defer func() {
+		defer c.conn.Close()
+	}()
+
+	ticker := time.NewTicker(c.config.Keepalive())
+	for {
+		select {
+		case <-c.doneChan:
+			logger.Warnf("websocket channel done closed, %s", c.self.Id)
+			return
+		case message, ok := <-c.outChan:
+			if !ok {
+				logger.Warnf("websocket channel out chan closed, %s", c.self.Id)
+				return
+			}
+			err := c.writeMessage(websocket.BinaryMessage, message)
+			if err != nil {
+				logger.Errorf("websocket channel write message error, %s", err.Error())
+				return
+			}
+		case <-ticker.C:
+			if c.isClient {
+				if err := c.writeMessage(websocket.PingMessage, []byte{}); err != nil {
+					logger.Errorf("websocket channel write ping message error, %s", err.Error())
+					return
+				}
+				logger.Warnf("websocket channel send ping message")
+			}
+		}
+	}
+}
+
+// Colse -
+func (c *WebsocketChannel) Close() error {
+	c.closeOnce.Do(func() {
+		logger.Warnf("websocket channel close, %s", c.self.Id)
+		c.conn.SetReadDeadline(time.Now())
+		c.conn.SetWriteDeadline(time.Now())
+		close(c.doneChan)
+	})
 	return nil
 }

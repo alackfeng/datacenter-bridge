@@ -25,6 +25,9 @@ func NewLogConfigure() *LogConfigure {
 		FileMaxAge:  100,
 	}
 }
+func init() {
+	logger, _ = zap.NewDevelopment()
+}
 
 // InitLogger - 初始化日志.
 func InitLogger(release bool, config *LogConfigure) {
@@ -54,6 +57,10 @@ func InitLogger(release bool, config *LogConfigure) {
 		logger = zap.New(cores, zap.AddCaller(), zap.AddCallerSkip(1))
 	}
 	zap.ReplaceGlobals(logger)
+}
+
+func Sync() {
+	logger.Sync()
 }
 
 func Info(msg string, fields ...zap.Field) {

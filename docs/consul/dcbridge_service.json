@@ -3,7 +3,7 @@
       {
         "id": "dcb1-node-service",
         "name": "gw-dcb-service",
-        "tags": ["urlprefix-"],
+        "tags": ["ws://10.16.3.66:9500/bridge", "key:primary"],
         "address": "10.16.3.66",
         "port": 9500,
         "check": {

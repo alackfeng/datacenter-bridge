@@ -17,29 +17,30 @@ type WebsocketConfig struct {
 	ReadBufferSize  int
 	WriteBufferSize int
 	ReadLimit       int64
-	ReadDeadlineS   int
+	HeartTimeoutS   int // 心跳超时.
+	HeartCount      int // 心跳次数.
 	HandshakeS      int // 握手时间s.
 }
 
 // NewWebsocketConfig -
-func NewWebsocketConfig(host, prefix string) *WebsocketConfig {
+func NewWebsocketConfig(host string) *WebsocketConfig {
 	u, err := url.Parse(host)
 	if err != nil {
 		fmt.Println("url parse err: ", err.Error())
 		return nil
 	}
-	u.Hostname()
 	return &WebsocketConfig{
 		Scheme:          u.Scheme,
 		Ip:              u.Hostname(),
 		Port:            u.Port(),
-		Prefix:          prefix,
+		Prefix:          u.Path,
 		InChanCount:     10,
 		OutChanCount:    10,
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		ReadLimit:       1024 * 1024,
-		ReadDeadlineS:   60,
+		HeartTimeoutS:   30,
+		HeartCount:      3,
 		HandshakeS:      5,
 	}
 }
@@ -61,5 +62,15 @@ func (c WebsocketConfig) HandshakeDeadline() time.Duration {
 
 // ReadDeadline -
 func (c WebsocketConfig) ReadDeadline() time.Time {
-	return time.Now().Add(time.Duration(c.ReadDeadlineS) * time.Second)
+	return time.Now().Add(time.Duration(c.HeartTimeoutS*c.HeartCount+10) * time.Second)
+}
+
+// WriteDeadline -
+func (c WebsocketConfig) WriteDeadline() time.Time {
+	return time.Now().Add(time.Duration(c.HeartTimeoutS*c.HeartCount+10) * time.Second)
+}
+
+// Keepalive -
+func (c WebsocketConfig) Keepalive() time.Duration {
+	return time.Duration(c.HeartTimeoutS) * time.Second
 }

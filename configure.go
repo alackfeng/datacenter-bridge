@@ -2,6 +2,7 @@ package datacenterbridge
 
 import (
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
+	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
@@ -20,11 +21,12 @@ func NewConfigure() *Configure {
 	return &Configure{}
 }
 
-// Node -
-type Node struct {
-	Zone    string `yaml:"zone" json:"zone" comment:"区域:us-001"`
-	Service string `yaml:"service" json:"service" comment:"服务类别:dc-bridge"`
-	Id      string `yaml:"id" json:"id" comment:"服务Id:gw-dc-bridge-node1"`
+func (c Configure) Self() *discovery.Service {
+	return &discovery.Service{
+		Zone:    c.Zone,
+		Service: c.Service,
+		Id:      c.Id,
+	}
 }
 
 // ServerConfigure -
@@ -35,14 +37,14 @@ type ServerConfigure struct {
 
 // WebsocketConfigure -
 type WebsocketConfigure struct {
-	Up     bool   `yaml:"up" json:"up" comment:"是否启用"`
-	Host   string `yaml:"host" json:"host" comment:"ws://Ip:Port"`
-	Prefix string `yaml:"prefix" json:"prefix" comment:"uri prefix"`
+	Up   bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host string `yaml:"host" json:"host" comment:"ws://Ip:Port/bridge"`
+	// Prefix string `yaml:"prefix" json:"prefix" comment:"uri prefix"`
 }
 
 // To -
 func (s WebsocketConfigure) To() *websocket.WebsocketConfig {
-	return websocket.NewWebsocketConfig(s.Host, s.Prefix)
+	return websocket.NewWebsocketConfig(s.Host)
 }
 
 // WebsocketsConfigure -

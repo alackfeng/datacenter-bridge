@@ -2,10 +2,13 @@ package websocket
 
 import (
 	"context"
-	"fmt"
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/alackfeng/datacenter-bridge/channel"
+	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
 	"github.com/gorilla/websocket"
 )
@@ -14,14 +17,15 @@ var allowedOrigins = []string{"*"}
 
 // WebsocketServer -
 type WebsocketServer struct {
+	self     discovery.Service
 	config   WebsocketConfig
 	upgrader websocket.Upgrader
-	// client   sync.Map
 }
 
 // NewWebsocketServer -
-func NewWebsocketServer(config *WebsocketConfig) *WebsocketServer {
+func NewWebsocketServer(self *discovery.Service, config *WebsocketConfig) *WebsocketServer {
 	return &WebsocketServer{
+		self:   *self,
 		config: *config,
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
@@ -40,26 +44,52 @@ func NewWebsocketServer(config *WebsocketConfig) *WebsocketServer {
 	}
 }
 
-// acceptWebsocket -
-func (s *WebsocketServer) acceptWebsocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
+// acceptWebsocket - create ws channel.
+func (s *WebsocketServer) acceptWebsocket(channelChan chan<- channel.Channel) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 头认证.
+		req := r.Header.Get(DcBridgeAuthHeader)
+		if req == "" {
+			logger.Errorf("websocket auth error: no http header: Bridge")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		reqBody, err := base64.StdEncoding.DecodeString(req)
+		if err != nil {
+			logger.Errorf("websocket auth error: %v", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var res discovery.Service
+		if err := json.Unmarshal(reqBody, &res); err != nil {
+			logger.Errorf("websocket auth error: %v", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		// 升级ws.
+		conn, err := s.upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		wsChannel := newWebsocketServerChannel(&s.self, &res, &s.config).init(conn)
+		channelChan <- wsChannel
+		logger.Debugf("accept websocket channel: %v", wsChannel)
 	}
-	wsChannel := newWebsocketServerChannel(&s.config).init(conn)
-	fmt.Println("accept websocket channel: ", wsChannel)
+}
+
+// handleHealth - consul request health.
+func (s *WebsocketServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	logger.Debugf("websocket health ok. %s", r.RemoteAddr)
+	w.Write([]byte("ok"))
 }
 
 // ListenAndServe -
-func (s *WebsocketServer) ListenAndServe(ctx context.Context) {
+func (s *WebsocketServer) ListenAndServe(ctx context.Context, channelChan chan<- channel.Channel) {
 	server := http.Server{
 		Addr: s.config.Host(),
 	}
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		logger.Debugf("websocket health ok. %s", r.RemoteAddr)
-		w.Write([]byte("ok"))
-	})
-	http.HandleFunc(s.config.Prefix, s.acceptWebsocket)
+	http.HandleFunc("/health", s.handleHealth)                       // prefix: /health .
+	http.HandleFunc(s.config.Prefix, s.acceptWebsocket(channelChan)) // prefix: /bridge .
 
 	go func() {
 		logger.Debugf("start websocket server <http://%s>...", server.Addr)

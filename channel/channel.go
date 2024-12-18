@@ -2,7 +2,12 @@ package channel
 
 // Channel -
 type Channel interface {
-	Read()
-	Write()
-	Colse() error
+	ID() string
+	Key() string
+	DoneChan() chan struct{}
+	InChan() chan []byte
+	ReadLoop()
+	WriteLoop()
+	Close() error
+	SendSafe(data []byte) error
 }

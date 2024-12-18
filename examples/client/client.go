@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	datacenterbridge "github.com/alackfeng/datacenter-bridge"
+	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
 var release bool
@@ -22,14 +23,25 @@ func main() {
 	flag.Parse()
 
 	fmt.Printf("client::main - release mode<%v> \n", release)
+	logger.InitLogger(false, logger.NewLogConfigure())
 
 	done := make(chan bool)
 	ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
 
 	dcBridge := datacenterbridge.NewDCenterBridge(ctx, done, discoveryHost)
-	if err := dcBridge.CreateChannel("us", "gw-dcb-service"); err != nil {
+	go func() {
+		dcBridge.ChannelsLoop()
+	}()
+	// time.Sleep(time.Second)
+
+	ch, err := dcBridge.CreateChannel("us", "gw-dcb-service")
+	if err != nil {
 		fmt.Println("client::main - connect error:", err)
+		os.Exit(1)
+	}
+	if err := ch.SendSafe([]byte("hello")); err != nil {
+		fmt.Println("client::main - send error:", err)
 	}
 
 	fmt.Println("client::main - running.")
