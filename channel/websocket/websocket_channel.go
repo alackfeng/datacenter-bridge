@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -9,11 +8,6 @@ import (
 	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
 	"github.com/gorilla/websocket"
-)
-
-var (
-	ErrDoneChannelClosed = errors.New("done chan closed")
-	ErrOutChannelFull    = errors.New("out chan full")
 )
 
 // WebsocketChannel - websocket通道对象, 进行收发操作.
@@ -70,7 +64,7 @@ func (c *WebsocketChannel) ID() string {
 
 // Key - zone_service.
 func (c *WebsocketChannel) Key() string {
-	return c.self.Key()
+	return c.peer.Key()
 }
 
 // DoneChan -
@@ -141,9 +135,9 @@ func (c *WebsocketChannel) SendSafe(data []byte) error {
 	case c.outChan <- data:
 		return nil
 	case <-c.doneChan:
-		return ErrDoneChannelClosed
+		return channel.ErrDoneChannelClosed
 	default:
-		return ErrOutChannelFull
+		return channel.ErrOutChannelFull
 	}
 }
 
@@ -165,8 +159,7 @@ func (c *WebsocketChannel) WriteLoop() {
 				logger.Warnf("websocket channel out chan closed, %s", c.self.Id)
 				return
 			}
-			err := c.writeMessage(websocket.BinaryMessage, message)
-			if err != nil {
+			if err := c.writeMessage(websocket.BinaryMessage, message); err != nil {
 				logger.Errorf("websocket channel write message error, %s", err.Error())
 				return
 			}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,11 +16,38 @@ import (
 
 var release bool
 var host string
+var quicHost string
 var consulHost string
+
+func bridgeConfig() *datacenterbridge.Configure {
+	config := datacenterbridge.NewConfigure()
+	config.Zone = "us"
+	config.Id = "main-us"
+	config.Service = "servide -xxx"
+	config.Discovery.Consul = datacenterbridge.ConsulConfigure{
+		Up:   true,
+		Host: consulHost,
+	}
+	config.Servers.Ws = datacenterbridge.WebsocketConfigure{
+		Up:   true,
+		Host: host,
+	}
+	u, err := url.Parse(quicHost)
+	if err != nil {
+		logger.Fatalf("server::main - quic host parse error: %v", err)
+	}
+	fmt.Println("server::main - quic host:", u.Scheme, u.Host)
+	config.Servers.Quic = datacenterbridge.QuicConfigure{
+		Up:   true,
+		Host: u.Host,
+	}
+	return config
+}
 
 func main() {
 	flag.BoolVar(&release, "release", false, "run as release mode")
-	flag.StringVar(&host, "host", "ws://10.16.3.66:9500/bridge", "server host")
+	flag.StringVar(&host, "host", "ws://10.16.3.66:9500/bridge", "quic server host")
+	flag.StringVar(&quicHost, "quic", "quic://10.16.3.66:9501", "quic server host")
 	flag.StringVar(&consulHost, "consul", "http://127.0.0.1:8500", "consul host")
 	flag.Parse()
 
@@ -29,15 +57,7 @@ func main() {
 	logger.InitLogger(release, logger.NewLogConfigure())
 
 	fmt.Println("server::main - run as server, release mode", release)
-	config := datacenterbridge.NewConfigure()
-	config.Discovery.Consul = datacenterbridge.ConsulConfigure{
-		Up:   true,
-		Host: consulHost,
-	}
-	config.Servers.Ws = datacenterbridge.WebsocketConfigure{
-		Up:   true,
-		Host: host,
-	}
+	config := bridgeConfig()
 	dcBridge := datacenterbridge.NewDCenterBridgeWithConfig(ctx, done, config)
 	if err := dcBridge.ListenAndServe(); err != nil {
 		logger.Fatalf("server::main - server error: %v", err)

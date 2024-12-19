@@ -1,6 +1,7 @@
 package datacenterbridge
 
 import (
+	"github.com/alackfeng/datacenter-bridge/channel/quic"
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
 	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
@@ -31,8 +32,9 @@ func (c Configure) Self() *discovery.Service {
 
 // ServerConfigure -
 type ServerConfigure struct {
-	Ws  WebsocketConfigure  `yaml:"ws" json:"ws" comment:"Ws服务配置"`
-	Wss WebsocketsConfigure `yaml:"wss" json:"wss" comment:"Wss服务配置"`
+	Ws   WebsocketConfigure  `yaml:"ws" json:"ws" comment:"Ws服务配置"`
+	Wss  WebsocketsConfigure `yaml:"wss" json:"wss" comment:"Wss服务配置"`
+	Quic QuicConfigure       `yaml:"quic" json:"quic" comment:"Quic服务配置"`
 }
 
 // WebsocketConfigure -
@@ -54,6 +56,16 @@ type WebsocketsConfigure struct {
 	Prefix bool   `yaml:"prefix" json:"prefix" comment:"uri prefix"`
 	CaCert string `yaml:"cacert" json:"cacert" comment:"cacert"`
 	CaKey  string `yaml:"cakey" json:"cakey" comment:"cakey"`
+}
+
+type QuicConfigure struct {
+	Up   bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host string `yaml:"host" json:"host" comment:"quic://Ip:Port"`
+}
+
+// To -
+func (s QuicConfigure) To() *quic.QuicConfig {
+	return quic.NewQuicConfig(s.Host)
 }
 
 // DiscoveryConfigure -

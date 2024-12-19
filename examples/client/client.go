@@ -29,7 +29,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
 
-	dcBridge := datacenterbridge.NewDCenterBridge(ctx, done, discoveryHost)
+	config := datacenterbridge.NewConfigure()
+	config.Zone = "us"
+	config.Id = "xxx"
+	config.Service = "service.xxx"
+	config.Discovery.Consul = datacenterbridge.ConsulConfigure{
+		Up:   true,
+		Host: discoveryHost,
+	}
+	dcBridge := datacenterbridge.NewDCenterBridge(ctx, done, config)
 	go func() {
 		dcBridge.ChannelsLoop()
 	}()

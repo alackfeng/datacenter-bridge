@@ -23,7 +23,8 @@ docker run -d --name consul5 -p 12900:8500 -e CONSUL_BIND_INTERFACE=eth0 consul 
 docker run -d --name consul6 consul agent -server -datacenter=us -client=0.0.0.0 -retry-join 192.168.215.2
 docker run -d --name consul7 consul agent -server -datacenter=us -client=0.0.0.0 -retry-join 192.168.215.2
 
-docker run -d --name consul8 -p 8500:8500 -e CONSUL_BIND_INTERFACE=eth0 consul agent -datacenter=us -client=0.0.0.0 -retry-join 192.168.215.2
+docker run -d --name consul8 -p 8500:8500 -e CONSUL_BIND_INTERFACE=eth0 consul agent -datacenter=us -client=0.0.0.0 -enable-local-script-checks=true -retry-join 192.168.215.2
+
 docker exec consul5 consul members
 
 docker exec consul5 consul join -wan 192.168.215.2
@@ -42,7 +43,11 @@ docker build -t web-service .
 docker run -d --name=web-service web-service
 
 docker cp ./docs/consul/dcbridge_service.json consul8:/consul/config
+docker cp ./docs/consul/check_health_quic.sh consul8:/usr/local/bin/
+docker exec -it consul8 chmod +x /usr/local/bin/check_health_quic.sh
+docker exec -it consul8 chown consul:consul /usr/local/bin/check_health_quic.sh
 docker exec -it consul8 consul reload
+docker logs consul8 -f
 
 curl http://192.168.215.5:8500/v1/catalog/service/gw-dcb-service?dc=us
 curl http://192.168.215.3:8500/v1/health/service/gw-dcb-service?dc=us

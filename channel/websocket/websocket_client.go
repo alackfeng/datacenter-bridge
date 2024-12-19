@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -25,7 +26,7 @@ func NewWebsocketClient(self *discovery.Service, peer *discovery.Service) *Webso
 }
 
 // LoginHeader - 登录认证请求头.
-func (s *WebsocketChannel) LoginHeader() http.Header {
+func (s *WebsocketChannel) loginHeader() http.Header {
 	header := http.Header{}
 	selfJson, err := json.Marshal(s.self)
 	if err != nil {
@@ -36,14 +37,14 @@ func (s *WebsocketChannel) LoginHeader() http.Header {
 }
 
 // Connect -
-func (s *WebsocketClient) Connect() error {
+func (s *WebsocketClient) Connect(ctx context.Context) error {
 	dialer := websocket.Dialer{
 		HandshakeTimeout: s.config.HandshakeDeadline(),
 		ReadBufferSize:   s.config.ReadBufferSize,
 		WriteBufferSize:  s.config.WriteBufferSize,
 	}
 	fmt.Println("websocket connect .")
-	conn, _, err := dialer.Dial(s.config.Url(), s.LoginHeader())
+	conn, _, err := dialer.Dial(s.config.Url(), s.loginHeader())
 	if err != nil {
 		return err
 	}

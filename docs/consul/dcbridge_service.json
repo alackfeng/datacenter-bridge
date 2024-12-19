@@ -13,6 +13,18 @@
           "interval": "10s",
           "timeout": "1s"
         }
+      },
+      {
+        "id": "dcb1-node-service-quic",
+        "name": "gw-dcb-service",
+        "tags": ["quic://10.16.3.66:9501", "key:primary"],
+        "address": "10.16.3.66",
+        "port": 9500,
+        "check": {
+          "args": ["sh", "-C", "/usr/local/bin/check_health_quic.sh"],
+          "interval": "10s",
+          "timeout": "1s"
+        }
       }
     ]
   }

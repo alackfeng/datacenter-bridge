@@ -1,6 +1,9 @@
 package discovery
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 // Service -
 type Service struct {
@@ -14,6 +17,22 @@ type Service struct {
 // Key -
 func (s Service) Key() string {
 	return fmt.Sprintf("%s_%s", s.Zone, s.Service)
+}
+
+// Scheme -
+func (s Service) Scheme() string {
+	if u, err := url.Parse(s.Host); err == nil {
+		return u.Scheme
+	}
+	return ""
+}
+
+// Address - 去掉Scheme.
+func (s Service) Address() string {
+	if u, err := url.Parse(s.Host); err == nil {
+		return u.Host
+	}
+	return ""
 }
 
 // String -

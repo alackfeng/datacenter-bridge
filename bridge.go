@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/alackfeng/datacenter-bridge/channel"
+	"github.com/alackfeng/datacenter-bridge/channel/quic"
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
 	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
@@ -23,6 +24,7 @@ type DCenterBridge struct {
 	done        chan bool
 	config      Configure
 	wsServer    *websocket.WebsocketServer
+	quicServer  *quic.QuicServer
 	disConsul   *discovery.ConsulDiscovery
 	channels    sync.Map // zone_service -> map[service_id]*channel.Channel.
 	channelChan chan channel.Channel
@@ -37,19 +39,20 @@ func NewDCenterBridgeWithConfig(ctx context.Context, done chan bool, config *Con
 		done:        done,
 		config:      *config,
 		wsServer:    nil,
+		quicServer:  nil,
 		disConsul:   nil,
 		channels:    sync.Map{},
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
 }
 
-func NewDCenterBridge(ctx context.Context, done chan bool, discoveryUrl string) Datacenter {
+func NewDCenterBridge(ctx context.Context, done chan bool, config *Configure) Datacenter {
 	return &DCenterBridge{
 		ctx:         ctx,
 		done:        done,
-		config:      Configure{},
+		config:      *config,
 		wsServer:    nil,
-		disConsul:   discovery.NewConsulDiscovery(discoveryUrl),
+		disConsul:   discovery.NewConsulDiscovery(config.Discovery.Consul.Host),
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
 }
@@ -132,6 +135,15 @@ func (dc *DCenterBridge) ListenAndServe() error {
 		}()
 		logger.Infof("use server websocket up<%v>, host<%v>", s.Ws.Up, wsConfig.Url())
 	}
+	if s.Quic.Up {
+		dc.quicServer = quic.NewQuicServer(dc.config.Self(), s.Quic.To())
+		SWG.Add(1)
+		go func() {
+			dc.quicServer.ListenAndServe(dc.ctx, dc.channelChan)
+			SWG.Done()
+		}()
+		logger.Infof("use server quic up<%v>, host<%v>", s.Quic.Up, s.Quic.Host)
+	}
 
 	go dc.ChannelsLoop() // chan监听.
 	return nil
@@ -158,7 +170,7 @@ func (dc *DCenterBridge) selectService(zone, serviceName string) (*discovery.Ser
 		return nil, fmt.Errorf("service not found")
 	}
 	// 随机选取一个Service.
-	i := rand.Intn(len(services))
+	i := 1 //rand.Intn(len(services))
 	service := services[i]
 	logger.Debugf("select service: %d - %+v", i, service)
 	return &service, nil
@@ -177,14 +189,28 @@ func (dc *DCenterBridge) CreateChannel(zone, serviceName string) (channel.Channe
 	if err != nil {
 		return nil, err
 	}
-	wsChannel := websocket.NewWebsocketClient(dc.config.Self(), peer)
-	if err := wsChannel.Connect(); err != nil {
-		return nil, err
+	switch scheme := peer.Scheme(); scheme {
+	case "quic":
+		quicChannel := quic.NewQuicClient(dc.config.Self(), peer)
+		if err := quicChannel.Connect(dc.ctx); err != nil {
+			return nil, err
+		}
+		dc.channelChan <- quicChannel // send to chan.
+		logger.Debugf("connect to quic service: %+v, ok.", peer)
+		return quicChannel, nil
+	case "ws", "wss":
+		wsChannel := websocket.NewWebsocketClient(dc.config.Self(), peer)
+		if err := wsChannel.Connect(dc.ctx); err != nil {
+			return nil, err
+		}
+		logger.Debugf("connect to service")
+		dc.channelChan <- wsChannel // send to chan.
+		logger.Debugf("connect to ws service: %+v, ok.", peer)
+		return wsChannel, nil
+	default:
+		logger.Errorf("not support scheme: %s", scheme)
+		return nil, fmt.Errorf("not support scheme: %s", scheme)
 	}
-	logger.Debugf("connect to service")
-	dc.channelChan <- wsChannel // send to chan.
-	logger.Debugf("connect to service: %+v, ok.", peer)
-	return wsChannel, nil
 }
 
 // SendData -
