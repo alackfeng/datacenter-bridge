@@ -102,8 +102,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | startSendStream    |
 | msg_index     | string |  是  | 128   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 | stream_type   | string |  是  | 0-主码流，1-子码流，2-最次码流   |
 
 #### - 响应体
@@ -129,8 +127,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | startVideoLive    |
 | msg_index     | string |  是  | 129   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 
 #### - 响应体
 
@@ -139,9 +135,9 @@ func getAppSign() {
 | code | string |  是  | 错误码，0：成功，非0：失败 |
 | msg  | string |  是  |          错误描述          |
 | data  | json |  是  |          数据          |
-| audioType | int |  是  |  音频类型          |
-| sampleRate | int |  是  | 音频采样          |
-| audioRatio | int |  是  | 音频比特率,0为无效值,目前用于g726          |
+| audio_type | int |  是  |  音频类型          |
+| sample_rate | int |  是  | 音频采样          |
+| audio_ratio | int |  是  | 音频比特率,0为无效值,目前用于g726          |
 
 ### 视频实时直播【关闭】（p2p到设备）
 #### - 请求体
@@ -150,8 +146,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | closeVideoLive    |
 | msg_index     | string |  是  | 130   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 
 #### - 响应体
 
@@ -168,9 +162,7 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | controlVideoLive    |
 | msg_index     | string |  是  | 131   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
-| control     | string |  是  | pause/resume/mute/unmute   |
+| cmd_type     | string |  是  | pause/resume/mute/unmute   |
 
 #### - 响应体
 
@@ -186,8 +178,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | startTalkback    |
 | msg_index     | string |  是  | 132   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 
 #### - 响应体
 
@@ -203,8 +193,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | getVideoPlaybackFiles    |
 | msg_index     | string |  是  | 133   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 | offset     | int |  是  | 索引下表   |
 | limit     | int |  是  | 返回最大数量   |
 
@@ -216,7 +204,7 @@ func getAppSign() {
 | msg  | string |  是  |          错误描述          |
 | data  | json |  是  |          数据结构          |
 | total  | int |  是  |   文件总数量          |
-| data.file_paths  | []string |  是  | 文件列表          |
+| file_paths  | []string |  是  | 文件列表          |
 
 ### 录像回放【播放】（ws/p2p到设备）
 #### - 请求体
@@ -225,8 +213,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | startPlayVideoPlayback    |
 | msg_index     | string |  是  | 134   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 | file_path     | string |  是  | 录像文件   |
 | play_sec     | int |  是  |  从第几秒开始播放   |
 
@@ -239,9 +225,9 @@ func getAppSign() {
 | data  | json |  是  |          数据结构          |
 | sps  | string |  是  |   视频sps          |
 | pps  | string |  是  |   视频pps          |
-| audioType | int |  是  |  音频类型          |
-| sampleRate | int |  是  | 音频采样          |
-| audioRatio | int |  是  | 音频比特率,0为无效值,目前用于g726          |
+| audio_type | int |  是  |  音频类型          |
+| sample_rate | int |  是  | 音频采样          |
+| audio_ratio | int |  是  | 音频比特率,0为无效值,目前用于g726          |
 
 ### 录像回放【关闭】（ws/p2p到设备）
 #### - 请求体
@@ -250,8 +236,6 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | closePlayVideoPlayback    |
 | msg_index     | string |  是  | 135   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 | file_path     | string |  是  | 录像文件   |
 
 #### - 响应体
@@ -268,10 +252,8 @@ func getAppSign() {
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
 | msg_name      | string |  是  | controlPlayVideoPlayback    |
 | msg_index     | string |  是  | 135   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
 | file_path     | string |  是  | 录像文件   |
-| control     | string |  是  | pause/resume/mute/unmute   |
+| cmd_type     | string |  是  | pause/resume/mute/unmute   |
 
 #### - 响应体
 | 名称 |  类型  | 必填 |            说明            |
@@ -286,11 +268,9 @@ func getAppSign() {
 #### - 请求体
 |   名称    |  类型  | 必填 |                             说明                             |
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
-| msg_name      | string |  是  | p2pTask    |
+| msg_name      | string |  是  | p2pRequest    |
 | msg_index     | string |  是  | 136   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
-| cmd_type     | string |  是  | req_pass   |
+| cmd_type      | string |  是  | rpass   |
 
 #### - 响应体【无】
 
@@ -298,12 +278,10 @@ func getAppSign() {
 #### - 请求体
 |   名称    |  类型  | 必填 |                             说明                             |
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
-| msg_name      | string |  是  | p2pTask    |
+| msg_name      | string |  是  | p2pResponse    |
 | msg_index     | string |  是  | 137   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
-| cmd_type     | string |  是  | resp_pass   |
-| pass_id     | string |  是  | 随机生成PassId   |
+| cmd_type      | string |  是  | spass   |
+| pass_id       | string |  是  | 随机生成PassId   |
 
 #### - 响应体【无】
 
@@ -311,13 +289,11 @@ func getAppSign() {
 #### - 请求体
 |   名称    |  类型  | 必填 |                             说明                             |
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
-| msg_name      | string |  是  | p2pTask    |
+| msg_name      | string |  是  | p2pOfferOrAnswer    |
 | msg_index     | string |  是  | 138   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
-| cmd_type     | string |  是  | offer/answer   |
-| pass_id     | string |  是  | 返回的PassId   |
-| description     | string |  是  | offer sdp信息   |
+| cmd_type      | string |  是  | offer/answer   |
+| pass_id       | string |  是  | 返回的PassId   |
+| description   | string |  是  | offer sdp信息   |
 
 #### - 响应体【无】
 
@@ -326,13 +302,11 @@ func getAppSign() {
 #### - 请求体
 |   名称    |  类型  | 必填 |                             说明                             |
 | :-------: | :----: | :--: | :----------------------------------------------------------: |
-| msg_name      | string |  是  | p2pTask    |
+| msg_name      | string |  是  | p2pCandidate    |
 | msg_index     | string |  是  | 139   |
-| app_id     | int |  是  | AppId   |
-| device_id     | string |  是  | 设备Id   |
-| cmd_type     | string |  是  | candidate   |
-| pass_id     | string |  是  | 返回的PassId   |
+| cmd_type      | string |  是  | candidate   |
+| pass_id       | string |  是  | 返回的PassId   |
 | candidate     | string |  是  | ice candidate信息   |
-| mid     | string |  是  | ice mid信息   |
+| mid           | string |  是  | ice mid信息   |
 
 #### - 响应体【无】
