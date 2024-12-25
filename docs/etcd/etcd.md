@@ -80,4 +80,12 @@ etcdctl --endpoints=127.0.0.1:23791 --write-out=table member list
 
 docker compose -f docker-compose-cluster.yaml down
 
+etcdctl --endpoints=127.0.0.1:23791 put /dcbridge_gw-dcb-service/us/s0 "hello s0"
+etcdctl --endpoints=127.0.0.1:23791 put /dcbridge/cn-001/s1 "hello s1"
+etcdctl --endpoints=127.0.0.1:23791 put /dcbridge/cn-002/s2 "hello s2"
+etcdctl --endpoints=127.0.0.1:23791 get --prefix "/dcbridge"
+etcdctl --endpoints=127.0.0.1:23791 get --prefix "/dcbridge" --keys-only
+etcdctl --endpoints=127.0.0.1:23791 get --prefix "/dcbridge" --write-out=json | jq
+
+
 ```

@@ -30,6 +30,21 @@ func (c Configure) Self() *discovery.Service {
 	}
 }
 
+// Register - etcd use.
+func (c Configure) Register() *discovery.Service {
+	host := c.Servers.Ws.Host
+	if c.Servers.Quic.Up {
+		host = c.Servers.Quic.Host
+	}
+	return &discovery.Service{
+		Zone:    c.Zone,
+		Service: c.Service,
+		Id:      c.Id,
+		Host:    host,
+		Tag:     "primary",
+	}
+}
+
 // ServerConfigure -
 type ServerConfigure struct {
 	Ws   WebsocketConfigure  `yaml:"ws" json:"ws" comment:"Ws服务配置"`
@@ -71,10 +86,18 @@ func (s QuicConfigure) To() *quic.QuicConfig {
 // DiscoveryConfigure -
 type DiscoveryConfigure struct {
 	Consul ConsulConfigure `yaml:"consul" json:"consul" comment:"Consul服务发现"`
+	Etcd   EtcdConfigure   `yaml:"etcd" json:"etcd" comment:"Etcd服务发现"`
 }
 
 // ConsulConfigure-
 type ConsulConfigure struct {
 	Up   bool   `yaml:"up" json:"up" comment:"是否启用"`
 	Host string `yaml:"host" json:"host" comment:"http://Ip:Port"`
+}
+
+type EtcdConfigure struct {
+	Up         bool     `yaml:"up" json:"up" comment:"是否启用"`
+	Endpoints  []string `yaml:"endpoints" json:"endpoints" comment:"[]Ip:Port"`
+	Prefix     string   `yaml:"prefix" json:"prefix" comment:"service prefix"`
+	GrantedTTL int64    `yaml:"ttl" json:"ttl" comment:"service granted ttl in seconds"`
 }

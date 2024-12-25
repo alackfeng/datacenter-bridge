@@ -52,7 +52,7 @@ func NewDCenterBridge(ctx context.Context, done chan bool, config *Configure) Da
 		done:        done,
 		config:      *config,
 		wsServer:    nil,
-		discovery:   discovery.NewConsulDiscovery(config.Discovery.Consul.Host),
+		discovery:   discovery.NewConsulRegistry(config.Discovery.Consul.Host),
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
 }
@@ -113,8 +113,21 @@ func (dc *DCenterBridge) ChannelsLoop() error {
 func (dc *DCenterBridge) ListenAndServe() error {
 	d := dc.config.Discovery
 	if d.Consul.Up {
-		dc.discovery = discovery.NewConsulDiscovery(d.Consul.Host)
+		dc.discovery = discovery.NewConsulRegistry(d.Consul.Host)
 		logger.Infof("use discovery consul up<%v>, host<%v>", d.Consul.Up, d.Consul.Host)
+	} else if d.Etcd.Up {
+		etcdDis := discovery.NewEtcdRegistry(d.Etcd.Endpoints, d.Etcd.Prefix, d.Etcd.GrantedTTL)
+		if etcdDis == nil {
+			logger.Error("etcd discovery err")
+			return fmt.Errorf("discovery config error")
+		}
+		if err := etcdDis.Register(dc.ctx, *dc.config.Register()); err != nil {
+			logger.Error("etcd register err")
+			return fmt.Errorf("discovery config error")
+		}
+		etcdDis.Watch(dc.ctx)
+		dc.discovery = etcdDis
+		logger.Infof("use discovery etcd up<%v>, endpoints<%v>", d.Etcd.Up, d.Etcd.Endpoints)
 	} else {
 		logger.Error("no use discovery")
 		return fmt.Errorf("discovery config error")

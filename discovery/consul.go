@@ -12,19 +12,36 @@ import (
 )
 
 // ConsulDiscovery - use consul discovery.
-type ConsulDiscovery struct {
+type ConsulRegistry struct {
 	baseUrl string
 	httpUtil.HttpClient
 }
 
-var _ Discovery = (*ConsulDiscovery)(nil)
+var _ Discovery = (*ConsulRegistry)(nil)
 
-// NewConsulDiscovery -
-func NewConsulDiscovery(baseUrl string) Discovery {
-	return &ConsulDiscovery{
+// NewConsulRegistry -
+func NewConsulRegistry(baseUrl string) Discovery {
+	return &ConsulRegistry{
 		HttpClient: *httpUtil.NewHttpClient(),
 		baseUrl:    baseUrl,
 	}
+}
+
+// Register implements Discovery.
+func (c *ConsulRegistry) Register(ctx context.Context, service Service) error {
+	// TODO unimplemented.
+	return nil
+}
+
+// Unregister implements Discovery.
+func (c *ConsulRegistry) Unregister(ctx context.Context) error {
+	// TODO unimplemented.
+	return nil
+}
+
+// Watch implements Discovery.
+func (c *ConsulRegistry) Watch(ctx context.Context) {
+	// TODO unimplemented.
 }
 
 // ConsulNode -
@@ -95,7 +112,7 @@ func (c HealthService) To() *Service {
 }
 
 // GetServices - 获取某服务列表.
-func (c *ConsulDiscovery) GetServices(ctx context.Context, zone, serviceName string) ([]Service, error) {
+func (c *ConsulRegistry) GetServices(ctx context.Context, zone, serviceName string) ([]Service, error) {
 	res, err := c.Get(ctx, fmt.Sprintf("%s/v1/health/service/%s?dc=%s&passing", c.baseUrl, serviceName, zone), nil)
 	if err != nil {
 		logger.Errorf("consul discovery GetServices err: %v", err)

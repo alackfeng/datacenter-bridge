@@ -22,8 +22,8 @@ var consulHost string
 func bridgeConfig() *datacenterbridge.Configure {
 	config := datacenterbridge.NewConfigure()
 	config.Zone = "us"
-	config.Id = "main-us"
-	config.Service = "servide -xxx"
+	config.Id = "main-us-1"
+	config.Service = "gw-dcb-service"
 	config.Discovery.Consul = datacenterbridge.ConsulConfigure{
 		Up:   true,
 		Host: consulHost,

@@ -44,4 +44,7 @@ func (s Service) String() string {
 // Discovery - 服务发现.
 type Discovery interface {
 	GetServices(ctx context.Context, zone, serviceName string) ([]Service, error)
+	Register(ctx context.Context, service Service) error
+	Unregister(ctx context.Context) error
+	Watch(ctx context.Context)
 }
