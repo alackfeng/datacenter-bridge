@@ -8,18 +8,21 @@ import (
 	"strings"
 
 	"github.com/alackfeng/datacenter-bridge/logger"
+	httpUtil "github.com/alackfeng/datacenter-bridge/utils/http"
 )
 
 // ConsulDiscovery - use consul discovery.
 type ConsulDiscovery struct {
 	baseUrl string
-	HttpClient
+	httpUtil.HttpClient
 }
 
+var _ Discovery = (*ConsulDiscovery)(nil)
+
 // NewConsulDiscovery -
-func NewConsulDiscovery(baseUrl string) *ConsulDiscovery {
+func NewConsulDiscovery(baseUrl string) Discovery {
 	return &ConsulDiscovery{
-		HttpClient: *NewHttpClient(),
+		HttpClient: *httpUtil.NewHttpClient(),
 		baseUrl:    baseUrl,
 	}
 }
@@ -91,14 +94,14 @@ func (c HealthService) To() *Service {
 	}
 }
 
-// GetService - 获取某服务列表.
-func (c *ConsulDiscovery) GetService(ctx context.Context, zone, serviceName string) ([]Service, error) {
+// GetServices - 获取某服务列表.
+func (c *ConsulDiscovery) GetServices(ctx context.Context, zone, serviceName string) ([]Service, error) {
 	res, err := c.Get(ctx, fmt.Sprintf("%s/v1/health/service/%s?dc=%s&passing", c.baseUrl, serviceName, zone), nil)
 	if err != nil {
-		logger.Errorf("consul discovery GetService err: %v", err)
+		logger.Errorf("consul discovery GetServices err: %v", err)
 		return nil, err
 	}
-	fmt.Println("consul discovery GetService ", string(res))
+	fmt.Println("consul discovery GetServices ", string(res))
 	var resp []HealthService
 	if err := json.Unmarshal(res, &resp); err != nil {
 		return nil, err

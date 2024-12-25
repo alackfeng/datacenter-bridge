@@ -25,8 +25,8 @@ type DCenterBridge struct {
 	config      Configure
 	wsServer    *websocket.WebsocketServer
 	quicServer  *quic.QuicServer
-	disConsul   *discovery.ConsulDiscovery
-	channels    sync.Map // zone_service -> map[service_id]*channel.Channel.
+	discovery   discovery.Discovery // 服务发现.
+	channels    sync.Map            // zone_service -> map[service_id]*channel.Channel.
 	channelChan chan channel.Channel
 }
 
@@ -40,7 +40,7 @@ func NewDCenterBridgeWithConfig(ctx context.Context, done chan bool, config *Con
 		config:      *config,
 		wsServer:    nil,
 		quicServer:  nil,
-		disConsul:   nil,
+		discovery:   nil,
 		channels:    sync.Map{},
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
@@ -52,7 +52,7 @@ func NewDCenterBridge(ctx context.Context, done chan bool, config *Configure) Da
 		done:        done,
 		config:      *config,
 		wsServer:    nil,
-		disConsul:   discovery.NewConsulDiscovery(config.Discovery.Consul.Host),
+		discovery:   discovery.NewConsulDiscovery(config.Discovery.Consul.Host),
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
 }
@@ -113,7 +113,7 @@ func (dc *DCenterBridge) ChannelsLoop() error {
 func (dc *DCenterBridge) ListenAndServe() error {
 	d := dc.config.Discovery
 	if d.Consul.Up {
-		dc.disConsul = discovery.NewConsulDiscovery(d.Consul.Host)
+		dc.discovery = discovery.NewConsulDiscovery(d.Consul.Host)
 		logger.Infof("use discovery consul up<%v>, host<%v>", d.Consul.Up, d.Consul.Host)
 	} else {
 		logger.Error("no use discovery")
@@ -162,7 +162,7 @@ func (dc *DCenterBridge) WaitQuit() {
 // selectService -
 func (dc *DCenterBridge) selectService(zone, serviceName string) (*discovery.Service, error) {
 	// 通过discovery获取service列表.
-	services, err := dc.disConsul.GetService(dc.ctx, zone, serviceName)
+	services, err := dc.discovery.GetServices(dc.ctx, zone, serviceName)
 	if err != nil {
 		return nil, err
 	}

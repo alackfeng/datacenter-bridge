@@ -1,0 +1,12 @@
+# 其他node 分别将 `etcd1`改为 `etcd2`/ `etcd3`
+name: etcd2
+data-dir: /etcd/data
+# 其他node 分别下面的将`172.25.0.101`改为`172.25.0.102` / `172.25.0.103`
+listen-client-urls: http://172.25.0.102:2379, http://127.0.0.1:2379
+advertise-client-urls: http://172.25.0.102:2379
+listen-peer-urls: http://172.25.0.102:2380
+initial-advertise-peer-urls: http://172.25.0.102:2380
+# 这里之后不需要改
+initial-cluster: etcd1=http://172.25.0.101:2380,etcd2=http://172.25.0.102:2380,etcd3=http://172.25.0.103:2380
+initial-cluster-token: etcd-cluster-token
+initial-cluster-state: new

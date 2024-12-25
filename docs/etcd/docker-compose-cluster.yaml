@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  etcd-1:
+    image: gcr.io/etcd-development/etcd:v3.5.17
+    entrypoint: [ "/usr/local/bin/etcd", "--config-file", "/etcd/conf/etcd.yml" ]
+    ports:
+      - "23791:2379"
+    environment:
+      ETCDCTL_API: 3
+    volumes:
+      - type: bind
+        source: /tmp/etcd/cluster/etcd1
+        target: /etcd
+      - "/etc/localtime:/etc/localtime:ro"
+    networks:
+      etcd-net:
+        ipv4_address: 172.25.0.101
+
+  etcd-2:
+    image: gcr.io/etcd-development/etcd:v3.5.17
+    entrypoint: [ "/usr/local/bin/etcd", "--config-file", "/etcd/conf/etcd.yml" ]
+    ports:
+      - "23792:2379"
+    environment:
+      ETCDCTL_API: 3
+    volumes:
+      - type: bind
+        source: /tmp/etcd/cluster/etcd2
+        target: /etcd
+      - "/etc/localtime:/etc/localtime:ro"
+    networks:
+      etcd-net:
+        ipv4_address: 172.25.0.102
+
+  etcd-3:
+    image: gcr.io/etcd-development/etcd:v3.5.17
+    entrypoint: [ "/usr/local/bin/etcd", "--config-file", "/etcd/conf/etcd.yml" ]
+    ports:
+      - "23793:2379"
+    environment:
+      ETCDCTL_API: 3
+    volumes:
+      - type: bind
+        source: /tmp/etcd/cluster/etcd3
+        target: /etcd
+      - "/etc/localtime:/etc/localtime:ro"
+    networks:
+      etcd-net:
+        ipv4_address: 172.25.0.103
+
+networks:
+  etcd-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1

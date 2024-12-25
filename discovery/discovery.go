@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 )
@@ -42,4 +43,5 @@ func (s Service) String() string {
 
 // Discovery - 服务发现.
 type Discovery interface {
+	GetServices(ctx context.Context, zone, serviceName string) ([]Service, error)
 }
