@@ -42,8 +42,10 @@ func TestConfigure(t *testing.T) {
 				KeyFile:  "./testdata/cakey.pem",
 			},
 			Quic: dcb.QuicConfigure{
-				Up:   true,
-				Host: "quic://127.0.0.1:9501",
+				Up:       true,
+				Host:     "quic://127.0.0.1:9501",
+				CertFile: "./testdata/cacert.pem",
+				KeyFile:  "./testdata/cakey.pem",
 			},
 		},
 	}

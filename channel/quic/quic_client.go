@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 
 	"github.com/alackfeng/datacenter-bridge/channel"
 	"github.com/alackfeng/datacenter-bridge/discovery"
@@ -29,7 +28,6 @@ func (q *QuicClient) Connect(ctx context.Context) error {
 		InsecureSkipVerify: true,
 		NextProtos:         []string{nextProtos},
 	}
-	fmt.Println(">>>>quic host: ", q.peer.Address())
 	conn, err := quic.DialAddr(ctx, q.peer.Address(), tlsConf, nil)
 	if err != nil {
 		return err
