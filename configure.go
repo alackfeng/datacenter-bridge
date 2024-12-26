@@ -78,13 +78,15 @@ func (s WebsocketsConfigure) To() *websocket.WebsocketConfig {
 }
 
 type QuicConfigure struct {
-	Up   bool   `yaml:"up" json:"up" comment:"是否启用"`
-	Host string `yaml:"host" json:"host" comment:"quic://Ip:Port"`
+	Up       bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host     string `yaml:"host" json:"host" comment:"quic://Ip:Port"`
+	CertFile string `yaml:"certfile" json:"certfile" comment:"certfile"`
+	KeyFile  string `yaml:"keyfile" json:"keyfile" comment:"keyfile"`
 }
 
 // To -
 func (s QuicConfigure) To() *quic.QuicConfig {
-	return quic.NewQuicConfig(s.Host)
+	return quic.NewQuicTlsConfig(s.Host, s.CertFile, s.KeyFile)
 }
 
 // DiscoveryConfigure -

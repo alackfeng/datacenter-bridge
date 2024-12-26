@@ -27,7 +27,7 @@ func NewQuicClient(self *discovery.Service, peer *discovery.Service) *QuicClient
 func (q *QuicClient) Connect(ctx context.Context) error {
 	tlsConf := &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos:         []string{"quic-bridge"},
+		NextProtos:         []string{nextProtos},
 	}
 	fmt.Println(">>>>quic host: ", q.peer.Address())
 	conn, err := quic.DialAddr(ctx, q.peer.Address(), tlsConf, nil)

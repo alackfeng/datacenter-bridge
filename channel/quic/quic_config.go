@@ -8,6 +8,8 @@ import (
 // QuicConfig -
 type QuicConfig struct {
 	Host          string // localhost:4242.
+	CertFile      string // certfile.
+	KeyFile       string // keyfile.
 	InChanCount   int
 	OutChanCount  int
 	HeartTimeoutS int
@@ -23,6 +25,14 @@ func NewQuicConfig(host string) *QuicConfig {
 		HeartTimeoutS: 30,
 		HeartCount:    3,
 	}
+}
+
+// NewQuicTlsConfig -
+func NewQuicTlsConfig(host string, certFile, keyFile string) *QuicConfig {
+	c := NewQuicConfig(host)
+	c.CertFile = certFile
+	c.KeyFile = keyFile
+	return c
 }
 
 func (c QuicConfig) Addr() string {

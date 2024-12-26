@@ -13,7 +13,7 @@ type WebsocketConfig struct {
 	Port            string // Ip+Port.
 	Prefix          string // bridge.
 	CertFile        string // certfile.
-	KeyFile         string // 	keyfile.
+	KeyFile         string // keyfile.
 	InChanCount     int
 	OutChanCount    int
 	ReadBufferSize  int

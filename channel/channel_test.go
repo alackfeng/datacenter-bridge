@@ -183,6 +183,8 @@ func TestWebsocketChannel2(t *testing.T) {
 
 func TestQuicChannel(t *testing.T) {
 	url := "quic://10.16.3.206:9500"
+	certFile := "../docs/certs/server/server.crt"
+	keyFile := "../docs/certs/server/server.key"
 	self1 := &discovery.Service{
 		Zone:    "us-001",
 		Service: "gw-dcb-service",
@@ -204,7 +206,7 @@ func TestQuicChannel(t *testing.T) {
 		in chan []byte
 	}
 	go func() {
-		s := quic.NewQuicServer(self1, quic.NewQuicConfig(url))
+		s := quic.NewQuicServer(self1, quic.NewQuicTlsConfig(url, certFile, keyFile))
 		go func() {
 			for {
 				select {

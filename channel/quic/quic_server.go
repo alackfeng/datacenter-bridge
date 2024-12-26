@@ -16,6 +16,8 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
+const nextProtos = "quic-bridge"
+
 // QuicServer -
 type QuicServer struct {
 	self   discovery.Service
@@ -31,7 +33,19 @@ func NewQuicServer(self *discovery.Service, config *QuicConfig) *QuicServer {
 }
 
 // generateTLSConfig -
-func generateTLSConfig() *tls.Config {
+func (s *QuicServer) generateTLSConfig() *tls.Config {
+	if s.config.CertFile != "" && s.config.KeyFile != "" { // 加载文件的方式.
+		cert, err := tls.LoadX509KeyPair(s.config.CertFile, s.config.KeyFile)
+		if err != nil {
+			logger.Errorf("quic server load cert err: %v", err)
+			return nil
+		}
+		return &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			NextProtos:   []string{nextProtos},
+		}
+	}
+	// 随机生成.
 	key, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		logger.Errorf("quic server generate key err: %v", err)
@@ -52,13 +66,13 @@ func generateTLSConfig() *tls.Config {
 	}
 	return &tls.Config{
 		Certificates: []tls.Certificate{tlsCert},
-		NextProtos:   []string{"quic-bridge"},
+		NextProtos:   []string{nextProtos},
 	}
 }
 
 // ListenAndServe -
 func (s *QuicServer) ListenAndServe(ctx context.Context, channelChan chan<- channel.Channel) {
-	listener, err := quic.ListenAddr(s.config.Addr(), generateTLSConfig(), &quic.Config{
+	listener, err := quic.ListenAddr(s.config.Addr(), s.generateTLSConfig(), &quic.Config{
 		KeepAlivePeriod:      s.config.Keepalive(),
 		MaxIdleTimeout:       s.config.MaxIdleTimeout(),
 		HandshakeIdleTimeout: s.config.HandshakeIdleTimeout(),
