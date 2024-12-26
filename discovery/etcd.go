@@ -38,6 +38,10 @@ func NewEtcdRegistry(endpoints []string, prefix string, serviceTTL int64) *EtcdR
 	}
 }
 
+func (e *EtcdRegistry) ID() string {
+	return e.self.String()
+}
+
 func (e *EtcdRegistry) registerKey(service Service) string {
 	return fmt.Sprintf("%s/%s/%s/%s/%s", e.prefix, service.Service, service.Zone, service.Id, service.Host)
 }
@@ -46,15 +50,14 @@ func (e *EtcdRegistry) serviceKey(serviceName, zone string) string {
 	return fmt.Sprintf("%s/%s/%s", e.prefix, serviceName, zone)
 }
 
-func (e *EtcdRegistry) registerGet(key string) []Service {
-	if v, ok := e.regKeys.Load(key); ok {
-		return v.([]Service)
-	}
-	return nil
-}
+// func (e *EtcdRegistry) registerGet(key string) []Service {
+// 	if v, ok := e.regKeys.Load(key); ok {
+// 		return v.([]Service)
+// 	}
+// 	return nil
+// }
 
 func (e *EtcdRegistry) registerAdd(service Service) {
-	e.self = service
 	key := e.serviceKey(service.Service, service.Zone)
 	if v, ok := e.regKeys.Load(key); ok {
 		services := v.([]Service)
@@ -104,6 +107,7 @@ func (e *EtcdRegistry) Register(ctx context.Context, service Service) error {
 		if err != nil {
 			return err
 		}
+		e.self = service       // update self.
 		e.registerAdd(service) // update reg keys.
 
 		go func() {
@@ -126,6 +130,7 @@ func (e *EtcdRegistry) Unregister(ctx context.Context) error {
 	if e.self.Id == "" {
 		return nil
 	}
+	logger.Debugf("etcd unregister: %v", e.self)
 	key := e.registerKey(e.self)
 	if _, err := e.client.Delete(ctx, key); err != nil {
 		return err
@@ -141,16 +146,16 @@ func (e *EtcdRegistry) Watch(ctx context.Context) {
 			for _, ev := range resp.Events {
 				switch ev.Type {
 				case clientv3.EventTypePut:
-					key := string(ev.Kv.Key)
+					// key := string(ev.Kv.Key)
 					var service Service
 					if err := json.Unmarshal(ev.Kv.Value, &service); err != nil {
-						logger.Warnf("etcd service put umarshal: %s, err %v", string(ev.Kv.Key), err)
+						logger.Warnf("etcd %v service put umarshal: %s, err %v", e.self, string(ev.Kv.Key), err)
 						continue
 					}
-					logger.Warnf("etcd service added/updated: %s, %+v\n", key, service)
+					logger.Infof("etcd %v service added/updated: %v, %v", e.self, string(ev.Kv.Key), service)
 					e.registerAdd(service) // update reg keys.
 				case clientv3.EventTypeDelete:
-					logger.Warnf("etcd service removed: %s\n", string(ev.Kv.Key))
+					logger.Infof("etcd %v service removed: %s\n", e.self, string(ev.Kv.Key))
 					e.registerDel(string(ev.Kv.Key))
 				}
 			}
@@ -162,9 +167,9 @@ func (e *EtcdRegistry) Watch(ctx context.Context) {
 func (e *EtcdRegistry) GetServices(ctx context.Context, zone string, serviceName string) ([]Service, error) {
 	// cache get ?.
 	key := e.serviceKey(serviceName, zone)
-	if s := e.registerGet(key); s != nil {
-		return s, nil
-	}
+	// if s := e.registerGet(key); s != nil {
+	// 	return s, nil
+	// }
 	resp, err := e.client.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err

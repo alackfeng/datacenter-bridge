@@ -1,6 +1,9 @@
 package quic
 
-import "time"
+import (
+	"net/url"
+	"time"
+)
 
 // QuicConfig -
 type QuicConfig struct {
@@ -19,6 +22,14 @@ func NewQuicConfig(host string) *QuicConfig {
 		OutChanCount:  10,
 		HeartTimeoutS: 30,
 		HeartCount:    3,
+	}
+}
+
+func (c QuicConfig) Addr() string {
+	if u, err := url.Parse(c.Host); err != nil {
+		return c.Host
+	} else {
+		return u.Host
 	}
 }
 

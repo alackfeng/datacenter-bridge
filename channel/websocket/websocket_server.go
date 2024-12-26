@@ -99,12 +99,12 @@ func (s *WebsocketServer) ListenAndServe(ctx context.Context, channelChan chan<-
 	}()
 
 	<-ctx.Done()
-	logger.Error("websocket server shutdown...")
+	logger.Info("websocket server shutdown...")
 
 	stop, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := server.Shutdown(stop); err != nil {
 		logger.Errorf("websocket server shutdown error: %v", err)
 	}
-	logger.Error("websocket server gracefully stopped")
+	logger.Info("websocket server gracefully stopped")
 }

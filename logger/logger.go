@@ -27,6 +27,7 @@ func NewLogConfigure() *LogConfigure {
 }
 func init() {
 	logger, _ = zap.NewDevelopment()
+	zap.ReplaceGlobals(logger)
 }
 
 // InitLogger - 初始化日志.

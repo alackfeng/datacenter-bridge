@@ -58,7 +58,7 @@ func generateTLSConfig() *tls.Config {
 
 // ListenAndServe -
 func (s *QuicServer) ListenAndServe(ctx context.Context, channelChan chan<- channel.Channel) {
-	listener, err := quic.ListenAddr(s.config.Host, generateTLSConfig(), &quic.Config{
+	listener, err := quic.ListenAddr(s.config.Addr(), generateTLSConfig(), &quic.Config{
 		KeepAlivePeriod:      s.config.Keepalive(),
 		MaxIdleTimeout:       s.config.MaxIdleTimeout(),
 		HandshakeIdleTimeout: s.config.HandshakeIdleTimeout(),
@@ -77,7 +77,7 @@ func (s *QuicServer) ListenAndServe(ctx context.Context, channelChan chan<- chan
 			case <-ctx.Done():
 				return
 			default:
-				continue
+				return
 			}
 		}
 		go s.handleConnection(ctx, conn, channelChan)

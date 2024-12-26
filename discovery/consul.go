@@ -27,6 +27,10 @@ func NewConsulRegistry(baseUrl string) Discovery {
 	}
 }
 
+func (c *ConsulRegistry) ID() string {
+	return "consul"
+}
+
 // Register implements Discovery.
 func (c *ConsulRegistry) Register(ctx context.Context, service Service) error {
 	// TODO unimplemented.

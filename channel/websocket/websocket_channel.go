@@ -79,7 +79,7 @@ func (c *WebsocketChannel) InChan() chan []byte {
 
 // ReadLoop -
 func (c *WebsocketChannel) ReadLoop() {
-	logger.Warnf("websocket channel read loop, %s", c.self.Id)
+	logger.Debugf("websocket channel read loop, %s", c.self.Id)
 	defer func() {
 		c.Close()
 	}()
@@ -143,7 +143,7 @@ func (c *WebsocketChannel) SendSafe(data []byte) error {
 
 // WriteLoop -
 func (c *WebsocketChannel) WriteLoop() {
-	logger.Warnf("websocket channel write loop, %s", c.self.Id)
+	logger.Debugf("websocket channel write loop, %s", c.self.Id)
 	defer func() {
 		defer c.conn.Close()
 	}()

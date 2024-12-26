@@ -38,7 +38,7 @@ func (s Service) Address() string {
 
 // String -
 func (s Service) String() string {
-	return fmt.Sprintf("[%s]%s(%s)", s.Service, s.Host, s.Tag)
+	return fmt.Sprintf("[%s:%s:%s]%s(%s)", s.Service, s.Zone, s.Id, s.Host, s.Tag)
 }
 
 // Discovery - 服务发现.
@@ -47,4 +47,5 @@ type Discovery interface {
 	Register(ctx context.Context, service Service) error
 	Unregister(ctx context.Context) error
 	Watch(ctx context.Context)
+	ID() string
 }

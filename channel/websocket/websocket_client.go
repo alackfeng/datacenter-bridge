@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/alackfeng/datacenter-bridge/discovery"
@@ -43,13 +42,10 @@ func (s *WebsocketClient) Connect(ctx context.Context) error {
 		ReadBufferSize:   s.config.ReadBufferSize,
 		WriteBufferSize:  s.config.WriteBufferSize,
 	}
-	fmt.Println("websocket connect .")
 	conn, _, err := dialer.Dial(s.config.Url(), s.loginHeader())
 	if err != nil {
 		return err
 	}
-	fmt.Println("websocket connect 1.")
 	s.init(conn)
-	fmt.Println("websocket connect 2.")
 	return nil
 }

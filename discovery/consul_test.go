@@ -8,8 +8,7 @@ import (
 	"github.com/alackfeng/datacenter-bridge/discovery"
 )
 
-func TestEtcdRegistry(t *testing.T) {
-
+func TestConsulRegsitery(t *testing.T) {
 	testcases := []struct {
 		service string
 		zone    string
@@ -26,26 +25,13 @@ func TestEtcdRegistry(t *testing.T) {
 	ctx := context.Background()
 	for i, tc := range testcases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.remark), func(t *testing.T) {
-			dis := discovery.NewEtcdRegistry([]string{"127.0.0.1:23791"}, "/dcbridge", 10)
+			dis := discovery.NewConsulRegistry("http://127.0.0.1:23791")
 			if dis == nil {
 				t.Error("registry is nil")
 			}
-			service := discovery.Service{
-				Zone:    tc.zone,
-				Id:      tc.name,
-				Service: tc.service,
-				Host:    "ws://127.0.0.1:7900/ws",
-				Tag:     "primary",
-			}
-			if err := dis.Register(ctx, service); err != nil {
-				t.Error("regsiter error", err)
-			}
-			dis.Watch(ctx)
 			diss = append(diss, dis)
-
 		})
 	}
-
 	for i := 0; i < 2; i++ {
 		zone := "us-001"
 		serivce := "gw-dcb-service"
@@ -66,12 +52,4 @@ func TestEtcdRegistry(t *testing.T) {
 		}
 		// t.Log(i, len(services), services)
 	}
-
-	for i := range testcases {
-		// t.Log(">>>", i, diss[i].ID())
-		if err := diss[i].Unregister(ctx); err != nil {
-			t.Error("unregister error", err)
-		}
-	}
-
 }
