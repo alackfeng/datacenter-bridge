@@ -12,6 +12,8 @@ type WebsocketConfig struct {
 	Ip              string // Ip+Port.
 	Port            string // Ip+Port.
 	Prefix          string // bridge.
+	CertFile        string // certfile.
+	KeyFile         string // 	keyfile.
 	InChanCount     int
 	OutChanCount    int
 	ReadBufferSize  int
@@ -43,6 +45,14 @@ func NewWebsocketConfig(host string) *WebsocketConfig {
 		HeartCount:      3,
 		HandshakeS:      5,
 	}
+}
+
+// NewWebsocketTlsConfig -
+func NewWebsocketTlsConfig(host string, certFile, keyFile string) *WebsocketConfig {
+	c := NewWebsocketConfig(host)
+	c.CertFile = certFile
+	c.KeyFile = keyFile
+	return c
 }
 
 // Host -

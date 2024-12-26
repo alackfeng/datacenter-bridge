@@ -66,11 +66,15 @@ func (s WebsocketConfigure) To() *websocket.WebsocketConfig {
 
 // WebsocketsConfigure -
 type WebsocketsConfigure struct {
-	Up     bool   `yaml:"up" json:"up" comment:"是否启用"`
-	Host   bool   `yaml:"host" json:"host" comment:"Ip:Port"`
-	Prefix bool   `yaml:"prefix" json:"prefix" comment:"uri prefix"`
-	CaCert string `yaml:"cacert" json:"cacert" comment:"cacert"`
-	CaKey  string `yaml:"cakey" json:"cakey" comment:"cakey"`
+	Up       bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host     string `yaml:"host" json:"host" comment:"ws://Ip:Port/bridge"`
+	CertFile string `yaml:"certfile" json:"certfile" comment:"certfile"`
+	KeyFile  string `yaml:"keyfile" json:"keyfile" comment:"keyfile"`
+}
+
+// To -
+func (s WebsocketsConfigure) To() *websocket.WebsocketConfig {
+	return websocket.NewWebsocketTlsConfig(s.Host, s.CertFile, s.KeyFile)
 }
 
 type QuicConfigure struct {
@@ -98,6 +102,6 @@ type ConsulConfigure struct {
 type EtcdConfigure struct {
 	Up         bool     `yaml:"up" json:"up" comment:"是否启用"`
 	Endpoints  []string `yaml:"endpoints" json:"endpoints" comment:"[]Ip:Port"`
-	Prefix     string   `yaml:"prefix" json:"prefix" comment:"service prefix"`
+	Prefix     string   `yaml:"prefix" json:"prefix" comment:"service prefix /dcbridge."`
 	GrantedTTL int64    `yaml:"ttl" json:"ttl" comment:"service granted ttl in seconds"`
 }

@@ -32,6 +32,12 @@ func bridgeConfig() *datacenterbridge.Configure {
 		Up:   true,
 		Host: host,
 	}
+	config.Servers.Wss = datacenterbridge.WebsocketsConfigure{
+		Up:       true,
+		Host:     host,
+		CertFile: "./certs/server/server.crt",
+		KeyFile:  "./certs/server/server.key",
+	}
 	u, err := url.Parse(quicHost)
 	if err != nil {
 		logger.Fatalf("server::main - quic host parse error: %v", err)

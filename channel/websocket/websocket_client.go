@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -41,6 +42,9 @@ func (s *WebsocketClient) Connect(ctx context.Context) error {
 		HandshakeTimeout: s.config.HandshakeDeadline(),
 		ReadBufferSize:   s.config.ReadBufferSize,
 		WriteBufferSize:  s.config.WriteBufferSize,
+	}
+	if s.config.Scheme == "wss" { // safe???.
+		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 	conn, _, err := dialer.Dial(s.config.Url(), s.loginHeader())
 	if err != nil {

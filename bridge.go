@@ -148,6 +148,20 @@ func (dc *DCenterBridge) ListenAndServe() error {
 		}()
 		logger.Infof("use server websocket up<%v>, host<%v>", s.Ws.Up, wsConfig.Url())
 	}
+	if s.Wss.Up {
+		wssConfig := s.Wss.To()
+		if wssConfig == nil {
+			logger.Error("websockets server config error.")
+			return fmt.Errorf("websockets server config error")
+		}
+		dc.wsServer = websocket.NewWebsocketServer(dc.config.Self(), wssConfig)
+		SWG.Add(1)
+		go func() {
+			dc.wsServer.ListenAndServe(dc.ctx, dc.channelChan)
+			SWG.Done()
+		}()
+		logger.Infof("use server websockets up<%v>, host<%v>", s.Wss.Up, wssConfig.Url())
+	}
 	if s.Quic.Up {
 		dc.quicServer = quic.NewQuicServer(dc.config.Self(), s.Quic.To())
 		SWG.Add(1)

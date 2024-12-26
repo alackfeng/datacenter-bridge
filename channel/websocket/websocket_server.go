@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -83,18 +84,38 @@ func (s *WebsocketServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
+func (s *WebsocketServer) safe() bool {
+	return s.config.Scheme == "wss"
+}
+
 // ListenAndServe -
 func (s *WebsocketServer) ListenAndServe(ctx context.Context, channelChan chan<- channel.Channel) {
+	isSafe := s.safe()
+
+	mux := http.NewServeMux()
 	server := http.Server{
-		Addr: s.config.Host(),
+		Addr:    s.config.Host(),
+		Handler: mux,
 	}
-	http.HandleFunc("/health", s.handleHealth)                       // prefix: /health .
-	http.HandleFunc(s.config.Prefix, s.acceptWebsocket(channelChan)) // prefix: /bridge .
+	if isSafe {
+		server.TLSConfig = &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			PreferServerCipherSuites: true,
+		}
+	}
+	mux.HandleFunc("/health", s.handleHealth)                       // prefix: /health .
+	mux.HandleFunc(s.config.Prefix, s.acceptWebsocket(channelChan)) // prefix: /bridge .
 
 	go func() {
 		logger.Debugf("start websocket server <http://%s>...", server.Addr)
-		if err := server.ListenAndServe(); err != nil {
-			logger.Errorf("websocket server error: %v", err)
+		if isSafe {
+			if err := server.ListenAndServeTLS(s.config.CertFile, s.config.KeyFile); err != nil {
+				logger.Errorf("websockets server error: %v", err)
+			}
+		} else {
+			if err := server.ListenAndServe(); err != nil {
+				logger.Errorf("websocket server error: %v", err)
+			}
 		}
 	}()
 
