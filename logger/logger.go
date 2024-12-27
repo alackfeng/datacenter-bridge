@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -12,6 +13,7 @@ import (
 var logger *zap.Logger
 
 type LogConfigure struct {
+	Level       string `yaml:"level" json:"level" comment:"日志级别"`
 	FilePath    string `yaml:"file_path" json:"file_path" comment:"日志文件保存路径"`
 	FileMaxSize int    `yaml:"file_max_size" json:"file_max_size" comment:"日志分割前大小MB"`
 	FileMaxAge  int    `yaml:"file_max_age" json:"file_max_age" comment:"日志分割前天数days"`
@@ -25,15 +27,37 @@ func NewLogConfigure() *LogConfigure {
 		FileMaxAge:  100,
 	}
 }
+
 func init() {
 	logger, _ = zap.NewDevelopment()
 	zap.ReplaceGlobals(logger)
 }
 
-// InitLogger - 初始化日志.
-func InitLogger(release bool, config *LogConfigure) {
+func logLevel(level string) zapcore.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return zap.DebugLevel
+	case "info":
+		return zap.InfoLevel
+	case "warn":
+		return zap.WarnLevel
+	case "error":
+		return zap.ErrorLevel
+	case "dpanic":
+		return zap.DPanicLevel
+	case "panic":
+		return zap.PanicLevel
+	case "fatal":
+		return zap.FatalLevel
+	default:
+		return zap.DebugLevel
+	}
+}
 
-	if release {
+// InitLogger - 初始化日志.
+func InitLogger(release string, config *LogConfigure) {
+
+	if strings.ToLower(release) == "release" {
 		encoderConfig := zap.NewProductionEncoderConfig()
 		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		encoder := zapcore.NewJSONEncoder(encoderConfig)
@@ -47,14 +71,14 @@ func InitLogger(release bool, config *LogConfigure) {
 				LocalTime: true,
 				Compress:  false,
 			})), zapcore.InfoLevel),
-			zapcore.NewCore(encoder, zapcore.Lock(zapcore.AddSync(os.Stdout)), zapcore.InfoLevel))
+			zapcore.NewCore(encoder, zapcore.Lock(zapcore.AddSync(os.Stdout)), logLevel(config.Level)))
 		logger = zap.New(zapcore.NewTee(cores...), zap.AddCaller(), zap.AddCallerSkip(1))
 	} else {
 		encoderConfig := zap.NewDevelopmentEncoderConfig()
 		encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		encoder := zapcore.NewConsoleEncoder(encoderConfig)
-		cores := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
+		cores := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel(config.Level))
 		logger = zap.New(cores, zap.AddCaller(), zap.AddCallerSkip(1))
 	}
 	zap.ReplaceGlobals(logger)

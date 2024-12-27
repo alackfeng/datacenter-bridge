@@ -1,0 +1,36 @@
+app:
+  zone: cn-001
+  service: gw-dcb-service
+  id: server1
+  mode: debug
+
+  log:
+    level: debug
+    path: ./bin/logs/app_server1.log
+    fileMaxSize: 28
+    fileMaxAge: 100
+  
+  discovery:
+    consul:
+      up: true
+      host: http://127.0.0.1:8500
+    etcd:
+      up: true
+      endpoints: [127.0.0.1:2379]
+      prefix: "/dcbridge"
+      ttl: 10
+      
+  servers:
+    ws:
+      up: true
+      host: ws://127.0.0.1:9500/bridge
+    wss:
+      up: true
+      host: wss://127.0.0.1:9501/bridge
+      certfile: ./docs/certs/server/server.crt
+      keyfile: ./docs/certs/server/server.key
+    quic:
+      up: true
+      host: quic://127.0.0.1:9502
+      certfile: ./docs/certs/server/server.crt
+      keyfile: ./docs/certs/server/server.key

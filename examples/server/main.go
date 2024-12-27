@@ -4,67 +4,41 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	datacenterbridge "github.com/alackfeng/datacenter-bridge"
+	dcb "github.com/alackfeng/datacenter-bridge"
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
-var release bool
-var host string
-var quicHost string
-var consulHost string
-
-func bridgeConfig() *datacenterbridge.Configure {
-	config := datacenterbridge.NewConfigure()
-	config.Zone = "us"
-	config.Id = "main-us-1"
-	config.Service = "gw-dcb-service"
-	config.Discovery.Consul = datacenterbridge.ConsulConfigure{
-		Up:   true,
-		Host: consulHost,
-	}
-	config.Servers.Ws = datacenterbridge.WebsocketConfigure{
-		Up:   true,
-		Host: host,
-	}
-	config.Servers.Wss = datacenterbridge.WebsocketsConfigure{
-		Up:       true,
-		Host:     host,
-		CertFile: "./certs/server/server.crt",
-		KeyFile:  "./certs/server/server.key",
-	}
-	u, err := url.Parse(quicHost)
-	if err != nil {
-		logger.Fatalf("server::main - quic host parse error: %v", err)
-	}
-	fmt.Println("server::main - quic host:", u.Scheme, u.Host)
-	config.Servers.Quic = datacenterbridge.QuicConfigure{
-		Up:   true,
-		Host: u.Host,
-	}
-	return config
-}
+// var release bool
+// var host string
+// var quicHost string
+// var consulHost string
+var configFile string
 
 func main() {
-	flag.BoolVar(&release, "release", false, "run as release mode")
-	flag.StringVar(&host, "host", "ws://10.16.3.66:9500/bridge", "quic server host")
-	flag.StringVar(&quicHost, "quic", "quic://10.16.3.66:9501", "quic server host")
-	flag.StringVar(&consulHost, "consul", "http://127.0.0.1:8500", "consul host")
+	// flag.BoolVar(&release, "release", false, "run as release mode")
+	// flag.StringVar(&host, "host", "ws://10.16.3.66:9500/bridge", "quic server host")
+	// flag.StringVar(&quicHost, "quic", "quic://10.16.3.66:9501", "quic server host")
+	// flag.StringVar(&consulHost, "consul", "http://127.0.0.1:8500", "consul host")
+	flag.StringVar(&configFile, "config", "./examples/server/dcb_server1.config.yaml", "config file path")
 	flag.Parse()
 
 	done := make(chan bool)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	logger.InitLogger(release, logger.NewLogConfigure())
+	config, err := dcb.LoadConfigure(configFile)
+	if err != nil {
+		logger.Fatalf("server::main - load config error: %v", err)
+	}
+	fmt.Printf("server::main - run as server, mode:%v.\n", config.Mode)
+	fmt.Printf("server::main - config %s file: >>>>\n %+v <<<<.\n", configFile, config)
+	logger.InitLogger(config.Mode, &config.Log)
 
-	fmt.Println("server::main - run as server, release mode", release)
-	config := bridgeConfig()
-	dcBridge := datacenterbridge.NewDCenterBridgeWithServer(ctx, done, config)
+	dcBridge := dcb.NewDCenterBridge(ctx, done, config)
 	if err := dcBridge.ListenAndServe(); err != nil {
 		logger.Fatalf("server::main - server error: %v", err)
 	}

@@ -2,11 +2,13 @@ package datacenterbridge
 
 import (
 	"errors"
+	"os"
 
 	"github.com/alackfeng/datacenter-bridge/channel/quic"
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
 	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
+	"gopkg.in/yaml.v3"
 )
 
 var ErrNoDiscovery = errors.New("no discovery")
@@ -14,12 +16,7 @@ var ErrNoServer = errors.New("no server")
 
 // Configure -
 type Configure struct {
-	Zone      string              `yaml:"zone" json:"zone" comment:"区域:us-001"`
-	Service   string              `yaml:"service" json:"service" comment:"服务类别:dc-bridge"`
-	Id        string              `yaml:"id" json:"id" comment:"服务Id:gw-dc-bridge-node1"`
-	Log       logger.LogConfigure `yaml:"log" json:"log" comment:"日志配置"`
-	Servers   ServerConfigure     `yaml:"servers" json:"servers" comment:"服务列表"`
-	Discovery DiscoveryConfigure  `yaml:"discovery" json:"discovery" comment:"服务发现"`
+	AppConfigure `yaml:"app" json:"app" comment:"应用配置"`
 }
 
 // NewConfigure -
@@ -27,24 +24,55 @@ func NewConfigure() *Configure {
 	return &Configure{}
 }
 
-func (c Configure) Check(server bool) error {
-	if !c.Discovery.Consul.Up && !c.Discovery.Etcd.Up {
-		return ErrNoDiscovery
+// LoadConfigure - load configure from file.
+func LoadConfigure(configFile string) (*Configure, error) {
+	file, err := os.ReadFile(configFile)
+	if err != nil {
+		return nil, err
 	}
-	if server {
-		if !c.Servers.Ws.Up && !c.Servers.Wss.Up && !c.Servers.Quic.Up {
-			return ErrNoServer
-		}
+	config := &Configure{}
+	if err := yaml.Unmarshal(file, config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+// Check - check configure.
+func (c Configure) Check(server bool) error {
+	if err := c.Discovery.check(); err != nil {
+		return err
+	}
+	if !server {
+		return nil
+	}
+	if err := c.Servers.check(); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (c Configure) Self() *discovery.Service {
 	return &discovery.Service{
-		Zone:    c.Zone,
-		Service: c.Service,
-		Id:      c.Id,
+		Zone:    c.AppInfo.Zone,
+		Service: c.AppInfo.Service,
+		Id:      c.AppInfo.Id,
 	}
+}
+
+type AppConfigure struct {
+	AppInfo `yaml:",inline"`
+	Mode    string `yaml:"mode" json:"mode" comment:"运行模式"`
+
+	Log       logger.LogConfigure `yaml:"log" json:"log" comment:"日志配置"`
+	Servers   ServerConfigure     `yaml:"servers" json:"servers" comment:"服务列表"`
+	Discovery DiscoveryConfigure  `yaml:"discovery" json:"discovery" comment:"服务发现"`
+}
+
+// AppInfo - local app info.
+type AppInfo struct {
+	Zone    string `yaml:"zone" json:"zone" comment:"区域:cn-001"`
+	Service string `yaml:"service" json:"service" comment:"服务类别:gw-dcb-service"`
+	Id      string `yaml:"id" json:"id" comment:"服务Id:gw-node1"`
 }
 
 // NewSelf -
@@ -71,11 +99,23 @@ func (c Configure) Register() *discovery.Service {
 	}
 }
 
+func (c Configure) String() string {
+	b, _ := yaml.Marshal(c)
+	return string(b)
+}
+
 // ServerConfigure -
 type ServerConfigure struct {
 	Ws   WebsocketConfigure  `yaml:"ws" json:"ws" comment:"Ws服务配置"`
 	Wss  WebsocketsConfigure `yaml:"wss" json:"wss" comment:"Wss服务配置"`
 	Quic QuicConfigure       `yaml:"quic" json:"quic" comment:"Quic服务配置"`
+}
+
+func (c ServerConfigure) check() error {
+	if !c.Ws.Up && !c.Wss.Up && !c.Quic.Up {
+		return ErrNoServer
+	}
+	return nil
 }
 
 // WebsocketConfigure -
@@ -119,6 +159,13 @@ func (s QuicConfigure) To() *quic.QuicConfig {
 type DiscoveryConfigure struct {
 	Consul ConsulConfigure `yaml:"consul" json:"consul" comment:"Consul服务发现"`
 	Etcd   EtcdConfigure   `yaml:"etcd" json:"etcd" comment:"Etcd服务发现"`
+}
+
+func (c *DiscoveryConfigure) check() error {
+	if !c.Consul.Up && !c.Etcd.Up {
+		return ErrNoDiscovery
+	}
+	return nil
 }
 
 // ConsulConfigure-

@@ -107,7 +107,7 @@ func (s *WebsocketServer) ListenAndServe(ctx context.Context, channelChan chan<-
 	mux.HandleFunc(s.config.Prefix, s.acceptWebsocket(channelChan)) // prefix: /bridge .
 
 	go func() {
-		logger.Debugf("start websocket server <http://%s>...", server.Addr)
+		logger.Infof("start websocket server <http://%s>...", server.Addr)
 		if isSafe {
 			if err := server.ListenAndServeTLS(s.config.CertFile, s.config.KeyFile); err != nil {
 				logger.Errorf("websockets server error: %v", err)

@@ -24,6 +24,7 @@ type DCenterBridge struct {
 	done        chan bool
 	config      Configure
 	wsServer    *websocket.WebsocketServer
+	wssServer   *websocket.WebsocketServer
 	quicServer  *quic.QuicServer
 	discovery   discovery.Discovery  // 服务发现.
 	channels    sync.Map             // 区域通道列表: zone_service -> []channel.Channel.
@@ -32,40 +33,78 @@ type DCenterBridge struct {
 
 var _ Datacenter = (*DCenterBridge)(nil)
 
-// NewDCenterBridge - server use.
-func NewDCenterBridgeWithServer(ctx context.Context, done chan bool, config *Configure) Datacenter {
-	if err := config.Check(true); err != nil {
-		logger.Fatal(err.Error())
-	}
-	return &DCenterBridge{
+// NewDCenterBridge -
+func NewDCenterBridge(ctx context.Context, done chan bool, config *Configure) *DCenterBridge {
+	dc := &DCenterBridge{
 		ctx:         ctx,
 		done:        done,
 		config:      *config,
 		wsServer:    nil,
 		quicServer:  nil,
 		discovery:   nil,
-		channels:    sync.Map{},
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
+	return dc
 }
 
-// NewDCenterBridgeWithClient - client use.
-func NewDCenterBridgeWithClient(ctx context.Context, done chan bool, self *discovery.Service, options ...interface{}) Datacenter {
-	config := Configure{
-		Zone:    self.Zone,
-		Service: self.Service,
-		Id:      self.Id,
+// NewDCenterBridge - server use.
+func NewDCenterBridgeWithServer(ctx context.Context, done chan bool, self AppInfo, options ...interface{}) Datacenter {
+	config := &Configure{
+		AppConfigure: AppConfigure{
+			AppInfo: self,
+			Mode:    "debug",
+		},
 	}
 	for _, option := range options {
 		switch v := option.(type) {
-		case logger.LogConfigure:
-			config.Log = v
-		case *logger.LogConfigure:
-			config.Log = *v
+		case string:
+			config.Mode = v
 		case DiscoveryConfigure:
 			config.Discovery = v
 		case *DiscoveryConfigure:
 			config.Discovery = *v
+		case EtcdConfigure:
+			config.Discovery.Etcd = v
+		case *EtcdConfigure:
+			config.Discovery.Etcd = *v
+		case ConsulConfigure:
+			config.Discovery.Consul = v
+		case *ConsulConfigure:
+			config.Discovery.Consul = *v
+		case ServerConfigure:
+			config.Servers = v
+		case *ServerConfigure:
+			config.Servers = *v
+		case WebsocketConfigure:
+			config.Servers.Ws = v
+		case *WebsocketConfigure:
+			config.Servers.Ws = *v
+		case WebsocketsConfigure:
+			config.Servers.Wss = v
+		case *WebsocketsConfigure:
+			config.Servers.Wss = *v
+		default:
+			logger.Warnf("NewDCenterBridgeWithServer unknown option: %+v.", v)
+		}
+	}
+	if err := config.Check(true); err != nil {
+		logger.Fatal(err.Error())
+	}
+	return NewDCenterBridge(ctx, done, config)
+}
+
+// NewDCenterBridgeWithClient - client use.
+func NewDCenterBridgeWithClient(ctx context.Context, done chan bool, self AppInfo, options ...interface{}) Datacenter {
+	config := &Configure{
+		AppConfigure: AppConfigure{
+			AppInfo: self,
+			Mode:    "debug",
+		},
+	}
+	for _, option := range options {
+		switch v := option.(type) {
+		case string:
+			config.Mode = v
 		case EtcdConfigure:
 			config.Discovery.Etcd = v
 		case *EtcdConfigure:
@@ -82,15 +121,7 @@ func NewDCenterBridgeWithClient(ctx context.Context, done chan bool, self *disco
 		logger.Fatal(err.Error())
 	}
 
-	dc := &DCenterBridge{
-		ctx:         ctx,
-		done:        done,
-		config:      config,
-		wsServer:    nil,
-		quicServer:  nil,
-		discovery:   nil,
-		channelChan: make(chan channel.Channel, channelChanCount),
-	}
+	dc := NewDCenterBridge(ctx, done, config)
 	if err := dc.initDiscovery(); err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -134,7 +165,7 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 
 // ChannelsLoop -
 func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg) error {
-	logger.Warn("channelsLoop begin.")
+	logger.Info("channelsLoop begin.")
 	for {
 		select {
 		case <-dc.ctx.Done():
@@ -208,10 +239,10 @@ func (dc *DCenterBridge) initServers() error {
 			logger.Error("websockets server config error.")
 			return fmt.Errorf("websockets server config error")
 		}
-		dc.wsServer = websocket.NewWebsocketServer(dc.config.Self(), wssConfig)
+		dc.wssServer = websocket.NewWebsocketServer(dc.config.Self(), wssConfig)
 		SWG.Add(1)
 		go func() {
-			dc.wsServer.ListenAndServe(dc.ctx, dc.channelChan)
+			dc.wssServer.ListenAndServe(dc.ctx, dc.channelChan)
 			SWG.Done()
 		}()
 		logger.Infof("use server websockets up<%v>, host<%v>", s.Wss.Up, wssConfig.Url())

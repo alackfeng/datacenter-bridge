@@ -82,7 +82,7 @@ func (s *QuicServer) ListenAndServe(ctx context.Context, channelChan chan<- chan
 		return
 	}
 	defer listener.Close()
-	logger.Debugf("start quic server <quic://%s>...", s.config.Host)
+	logger.Infof("start quic server <quic://%s>...", s.config.Host)
 	for {
 		conn, err := listener.Accept(ctx)
 		if err != nil {

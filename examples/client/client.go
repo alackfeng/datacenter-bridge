@@ -9,29 +9,28 @@ import (
 	"syscall"
 
 	datacenterbridge "github.com/alackfeng/datacenter-bridge"
-	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
-var release bool
+var mode string
 var discoveryHost string
 
 func main() {
 	fmt.Println("client::main - begin.")
 
-	flag.BoolVar(&release, "release", false, "run as release mode")
+	flag.StringVar(&mode, "model", "debug", "run as release mode")
 	flag.StringVar(&discoveryHost, "discoveryHost", "http://127.0.0.1:8500", "consul discovery host")
 	flag.Parse()
 
-	fmt.Printf("client::main - release mode<%v> \n", release)
-	logger.InitLogger(false, logger.NewLogConfigure())
+	fmt.Printf("client::main - release mode<%v> \n", mode)
+	logger.InitLogger(mode, logger.NewLogConfigure())
 
 	done := make(chan bool)
 	ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
 
 	dcBridge := datacenterbridge.NewDCenterBridgeWithClient(ctx, done,
-		&discovery.Service{
+		datacenterbridge.AppInfo{
 			Zone:    "us",
 			Service: "gw-dcb-service",
 			Id:      "xxx",
