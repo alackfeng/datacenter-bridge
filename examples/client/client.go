@@ -41,7 +41,9 @@ func main() {
 		},
 	)
 	go func() {
-		dcBridge.ChannelsLoop()
+		dcBridge.ChannelsLoop(func(data []byte) {
+			fmt.Println("client::main - get data:", string(data))
+		})
 	}()
 	// time.Sleep(time.Second)
 

@@ -64,10 +64,13 @@ func main() {
 
 	fmt.Println("server::main - run as server, release mode", release)
 	config := bridgeConfig()
-	dcBridge := datacenterbridge.NewDCenterBridgeWithConfig(ctx, done, config)
+	dcBridge := datacenterbridge.NewDCenterBridgeWithServer(ctx, done, config)
 	if err := dcBridge.ListenAndServe(); err != nil {
 		logger.Fatalf("server::main - server error: %v", err)
 	}
+	dcBridge.ChannelsLoop(func(data []byte) {
+		fmt.Println("server::main - get data:", string(data))
+	})
 	dcBridge.WaitQuit()
 	fmt.Println("server::main - running.")
 

@@ -6,12 +6,12 @@
 ## 功能设计
 - [ ] 服务发现(ServiceDiscovery)
     - [ x ] consul
-    - [ ] etcd
+    - [ x ] etcd
     - [ ] redis
 - [ ] 桥通信(BridgeChannel)
     - [ ] http(s)
     - [ x ] websocket(s)
     - [ ] tcp(tls)
-    - [ ] quic
+    - [ x ] quic
     - [ ] p2p
     - [ ] mqtt

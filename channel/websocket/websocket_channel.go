@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -131,6 +132,7 @@ func (c *WebsocketChannel) writeMessage(messageType int, data []byte) error {
 }
 
 func (c *WebsocketChannel) SendSafe(data []byte) error {
+	fmt.Println(">>> websocket channel send safe", string(data))
 	select {
 	case c.outChan <- data:
 		return nil

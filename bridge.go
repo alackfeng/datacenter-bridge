@@ -33,7 +33,10 @@ type DCenterBridge struct {
 var _ Datacenter = (*DCenterBridge)(nil)
 
 // NewDCenterBridge - server use.
-func NewDCenterBridgeWithConfig(ctx context.Context, done chan bool, config *Configure) Datacenter {
+func NewDCenterBridgeWithServer(ctx context.Context, done chan bool, config *Configure) Datacenter {
+	if err := config.Check(true); err != nil {
+		logger.Fatal(err.Error())
+	}
 	return &DCenterBridge{
 		ctx:         ctx,
 		done:        done,
@@ -75,19 +78,27 @@ func NewDCenterBridgeWithClient(ctx context.Context, done chan bool, self *disco
 			logger.Warnf("NewDCenterBridgeWithClient unknown option: %+v.", v)
 		}
 	}
-	return &DCenterBridge{
+	if err := config.Check(false); err != nil {
+		logger.Fatal(err.Error())
+	}
+
+	dc := &DCenterBridge{
 		ctx:         ctx,
 		done:        done,
 		config:      config,
 		wsServer:    nil,
 		quicServer:  nil,
-		discovery:   discovery.NewConsulRegistry(config.Discovery.Consul.Host),
+		discovery:   nil,
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
+	if err := dc.initDiscovery(); err != nil {
+		logger.Fatal(err.Error())
+	}
+	return dc
 }
 
 // channelRead - 读取消息转发.
-func (dc *DCenterBridge) channelRead(ch channel.Channel) {
+func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMsg) {
 	chInChan := ch.InChan()
 	chDoneChan := ch.DoneChan()
 	for {
@@ -115,13 +126,14 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel) {
 				logger.Warn("channelRead closed.")
 				return
 			}
+			channelMsg(data)
 			logger.Debugf("channelRead channel: %+v, data: %s.", ch, string(data))
 		}
 	}
 }
 
 // ChannelsLoop -
-func (dc *DCenterBridge) ChannelsLoop() error {
+func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg) error {
 	logger.Warn("channelsLoop begin.")
 	for {
 		select {
@@ -135,7 +147,7 @@ func (dc *DCenterBridge) ChannelsLoop() error {
 			}
 			go ch.ReadLoop()
 			go ch.WriteLoop()
-			go dc.channelRead(ch)
+			go dc.channelRead(ch, channelMsg)
 
 			logger.Debugf("channelsLoop channel: %+v", ch)
 			if v, ok := dc.channels.Load(ch.Key()); ok {
@@ -224,7 +236,7 @@ func (dc *DCenterBridge) ListenAndServe() error {
 	if err := dc.initServers(); err != nil {
 		return err
 	}
-	go dc.ChannelsLoop() // chan监听.
+	// go dc.ChannelsLoop() // wait accept chan Channel监听.
 	return nil
 }
 
@@ -249,7 +261,7 @@ func (dc *DCenterBridge) selectService(zone, serviceName string) (*discovery.Ser
 		return nil, fmt.Errorf("service not found")
 	}
 	// 随机选取一个Service.
-	i := 1 //rand.Intn(len(services))
+	i := rand.Intn(len(services))
 	service := services[i]
 	logger.Debugf("select service: %d - %+v", i, service)
 	return &service, nil

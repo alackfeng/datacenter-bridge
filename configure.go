@@ -1,6 +1,8 @@
 package datacenterbridge
 
 import (
+	"errors"
+
 	"github.com/alackfeng/datacenter-bridge/channel/quic"
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
 	"github.com/alackfeng/datacenter-bridge/discovery"
@@ -22,11 +24,36 @@ func NewConfigure() *Configure {
 	return &Configure{}
 }
 
+var ErrNoDiscovery = errors.New("no discovery")
+var ErrNoServer = errors.New("no server")
+
+func (c Configure) Check(server bool) error {
+	if !c.Discovery.Consul.Up && !c.Discovery.Etcd.Up {
+		return ErrNoDiscovery
+	}
+	if server {
+		if !c.Servers.Ws.Up && !c.Servers.Wss.Up && !c.Servers.Quic.Up {
+			return ErrNoServer
+		}
+	}
+
+	return nil
+}
+
 func (c Configure) Self() *discovery.Service {
 	return &discovery.Service{
 		Zone:    c.Zone,
 		Service: c.Service,
 		Id:      c.Id,
+	}
+}
+
+// NewSelf -
+func NewSelf(zone, service, id string) *discovery.Service {
+	return &discovery.Service{
+		Zone:    zone,
+		Service: service,
+		Id:      id,
 	}
 }
 
