@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	datacenterbridge "github.com/alackfeng/datacenter-bridge"
+	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
@@ -29,15 +30,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
 
-	config := datacenterbridge.NewConfigure()
-	config.Zone = "us"
-	config.Id = "xxx"
-	config.Service = "service.xxx"
-	config.Discovery.Consul = datacenterbridge.ConsulConfigure{
-		Up:   true,
-		Host: discoveryHost,
-	}
-	dcBridge := datacenterbridge.NewDCenterBridge(ctx, done, config)
+	dcBridge := datacenterbridge.NewDCenterBridgeWithClient(ctx, done,
+		&discovery.Service{
+			Zone:    "us",
+			Service: "gw-dcb-service",
+			Id:      "xxx",
+		}, datacenterbridge.ConsulConfigure{
+			Up:   true,
+			Host: discoveryHost,
+		},
+	)
 	go func() {
 		dcBridge.ChannelsLoop()
 	}()

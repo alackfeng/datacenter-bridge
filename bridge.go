@@ -18,21 +18,21 @@ const channelChanCount = 10
 // SWG -
 var SWG = sync.WaitGroup{}
 
-// DCenterBridge -
+// DCenterBridge - 区域桥通道.
 type DCenterBridge struct {
 	ctx         context.Context
 	done        chan bool
 	config      Configure
 	wsServer    *websocket.WebsocketServer
 	quicServer  *quic.QuicServer
-	discovery   discovery.Discovery // 服务发现.
-	channels    sync.Map            // zone_service -> map[service_id]*channel.Channel.
-	channelChan chan channel.Channel
+	discovery   discovery.Discovery  // 服务发现.
+	channels    sync.Map             // 区域通道列表: zone_service -> []channel.Channel.
+	channelChan chan channel.Channel // 接受通道建立.
 }
 
 var _ Datacenter = (*DCenterBridge)(nil)
 
-// NewDCenterBridge -
+// NewDCenterBridge - server use.
 func NewDCenterBridgeWithConfig(ctx context.Context, done chan bool, config *Configure) Datacenter {
 	return &DCenterBridge{
 		ctx:         ctx,
@@ -46,12 +46,41 @@ func NewDCenterBridgeWithConfig(ctx context.Context, done chan bool, config *Con
 	}
 }
 
-func NewDCenterBridge(ctx context.Context, done chan bool, config *Configure) Datacenter {
+// NewDCenterBridgeWithClient - client use.
+func NewDCenterBridgeWithClient(ctx context.Context, done chan bool, self *discovery.Service, options ...interface{}) Datacenter {
+	config := Configure{
+		Zone:    self.Zone,
+		Service: self.Service,
+		Id:      self.Id,
+	}
+	for _, option := range options {
+		switch v := option.(type) {
+		case logger.LogConfigure:
+			config.Log = v
+		case *logger.LogConfigure:
+			config.Log = *v
+		case DiscoveryConfigure:
+			config.Discovery = v
+		case *DiscoveryConfigure:
+			config.Discovery = *v
+		case EtcdConfigure:
+			config.Discovery.Etcd = v
+		case *EtcdConfigure:
+			config.Discovery.Etcd = *v
+		case ConsulConfigure:
+			config.Discovery.Consul = v
+		case *ConsulConfigure:
+			config.Discovery.Consul = *v
+		default:
+			logger.Warnf("NewDCenterBridgeWithClient unknown option: %+v.", v)
+		}
+	}
 	return &DCenterBridge{
 		ctx:         ctx,
 		done:        done,
-		config:      *config,
+		config:      config,
 		wsServer:    nil,
+		quicServer:  nil,
 		discovery:   discovery.NewConsulRegistry(config.Discovery.Consul.Host),
 		channelChan: make(chan channel.Channel, channelChanCount),
 	}
@@ -68,7 +97,18 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel) {
 			return
 		case <-chDoneChan:
 			logger.Warn("channelRead closed.")
-			dc.channels.Delete(ch.Key())
+			dc.channels.Range(func(key, value interface{}) bool {
+				chs := value.([]channel.Channel)
+				for i, c := range chs {
+					if c == ch {
+						logger.Warn("channelRead closed, find it.")
+						chs = append(chs[:i], chs[i+1:]...)
+						dc.channels.Store(key, chs)
+						return false
+					}
+				}
+				return true
+			})
 			return
 		case data, ok := <-chInChan:
 			if !ok {
@@ -109,8 +149,7 @@ func (dc *DCenterBridge) ChannelsLoop() error {
 	}
 }
 
-// ListenAndServe -
-func (dc *DCenterBridge) ListenAndServe() error {
+func (dc *DCenterBridge) initDiscovery() error {
 	d := dc.config.Discovery
 	if d.Consul.Up {
 		dc.discovery = discovery.NewConsulRegistry(d.Consul.Host)
@@ -132,7 +171,10 @@ func (dc *DCenterBridge) ListenAndServe() error {
 		logger.Error("no use discovery")
 		return fmt.Errorf("discovery config error")
 	}
+	return nil
+}
 
+func (dc *DCenterBridge) initServers() error {
 	s := dc.config.Servers
 	if s.Ws.Up {
 		wsConfig := s.Ws.To()
@@ -171,7 +213,17 @@ func (dc *DCenterBridge) ListenAndServe() error {
 		}()
 		logger.Infof("use server quic up<%v>, host<%v>", s.Quic.Up, s.Quic.Host)
 	}
+	return nil
+}
 
+// ListenAndServe -
+func (dc *DCenterBridge) ListenAndServe() error {
+	if err := dc.initDiscovery(); err != nil {
+		return err
+	}
+	if err := dc.initServers(); err != nil {
+		return err
+	}
 	go dc.ChannelsLoop() // chan监听.
 	return nil
 }
