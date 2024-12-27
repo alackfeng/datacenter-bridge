@@ -9,6 +9,9 @@ import (
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
+var ErrNoDiscovery = errors.New("no discovery")
+var ErrNoServer = errors.New("no server")
+
 // Configure -
 type Configure struct {
 	Zone      string              `yaml:"zone" json:"zone" comment:"区域:us-001"`
@@ -24,9 +27,6 @@ func NewConfigure() *Configure {
 	return &Configure{}
 }
 
-var ErrNoDiscovery = errors.New("no discovery")
-var ErrNoServer = errors.New("no server")
-
 func (c Configure) Check(server bool) error {
 	if !c.Discovery.Consul.Up && !c.Discovery.Etcd.Up {
 		return ErrNoDiscovery
@@ -36,7 +36,6 @@ func (c Configure) Check(server bool) error {
 			return ErrNoServer
 		}
 	}
-
 	return nil
 }
 

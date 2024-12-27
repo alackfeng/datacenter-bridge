@@ -2,6 +2,7 @@ package datacenterbridge
 
 import "github.com/alackfeng/datacenter-bridge/channel"
 
+// GetChannelMsg - get bridge channel message.
 type GetChannelMsg func(data []byte)
 
 // Datacenter - datacenter bridge interface.

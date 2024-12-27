@@ -4,6 +4,8 @@ go 1.23.2
 
 require (
 	github.com/gorilla/websocket v1.5.3
+	github.com/quic-go/quic-go v0.48.2
+	go.etcd.io/etcd/client/v3 v3.5.17
 	go.uber.org/zap v1.27.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -16,10 +18,8 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
-	github.com/quic-go/quic-go v0.48.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.17 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.17 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.17 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
