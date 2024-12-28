@@ -2,18 +2,24 @@ package datacenterbridge
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
+	"slices"
 	"sync"
+	"time"
 
 	"github.com/alackfeng/datacenter-bridge/channel"
 	"github.com/alackfeng/datacenter-bridge/channel/quic"
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
 	"github.com/alackfeng/datacenter-bridge/discovery"
 	"github.com/alackfeng/datacenter-bridge/logger"
+	"github.com/alackfeng/datacenter-bridge/utils"
 )
 
 const channelChanCount = 10
+
+var ErrChannelNotFound = errors.New("channel not found")
 
 // SWG -
 var SWG = sync.WaitGroup{}
@@ -139,18 +145,24 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 			return
 		case <-chDoneChan:
 			logger.Warn("channelRead closed.")
-			dc.channels.Range(func(key, value interface{}) bool {
-				chs := value.([]channel.Channel)
-				for i, c := range chs {
-					if c == ch {
-						logger.Warn("channelRead closed, find it.")
-						chs = append(chs[:i], chs[i+1:]...)
+			key := ch.Key()
+			v, ok := dc.channels.Load(key)
+			if !ok {
+				continue
+			}
+			chs := v.([]channel.Channel)
+			for i, c := range chs {
+				if c == ch {
+					logger.Warn("channelRead closed, find it.")
+					chs = slices.Delete(chs, i, i+1)
+					if len(chs) == 0 {
+						dc.channels.Delete(key) // 删除空列表.
+					} else {
 						dc.channels.Store(key, chs)
-						return false
 					}
+					break
 				}
-				return true
-			})
+			}
 			return
 		case data, ok := <-chInChan:
 			if !ok {
@@ -183,7 +195,7 @@ func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg) error {
 			logger.Debugf("channelsLoop channel: %+v", ch)
 			if v, ok := dc.channels.Load(ch.Key()); ok {
 				chs := v.([]channel.Channel)
-				chs = append(chs, ch)
+				chs = append(chs, ch) // TODO: 是否需要判断存在否?, 支持重复连接.
 				dc.channels.Store(ch.Key(), chs)
 			} else {
 				dc.channels.Store(ch.Key(), []channel.Channel{ch})
@@ -273,12 +285,73 @@ func (dc *DCenterBridge) ListenAndServe() error {
 
 // WaitQuit -
 func (dc *DCenterBridge) WaitQuit() {
-	go func() {
+	stop, stopCancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer stopCancel()
+	select {
+	case <-stop.Done():
+		logger.Warn("waiting quit...timeout 10s")
+		stopCancel()
+		return
+	default:
 		logger.Warn("waiting quit...")
 		SWG.Wait()
-		dc.done <- true
 		logger.Warn("waiting quit...done")
-	}()
+	}
+	dc.done <- true
+}
+
+// ListenerList -
+type ListenerList struct {
+	Self    AppInfo  `json:"app" comment:"本地服务信息"`
+	Listens []string `json:"listens" comment:"监听地址列表"`
+}
+
+func (l ListenerList) String() string {
+	return utils.FormatJson(l)
+}
+
+func (dc *DCenterBridge) GetListenerList() ListenerList {
+	l := ListenerList{
+		Self:    dc.config.AppInfo,
+		Listens: []string{},
+	}
+	if dc.wsServer != nil {
+		l.Listens = append(l.Listens, dc.wsServer.ListenAddress())
+	}
+	if dc.wssServer != nil {
+		l.Listens = append(l.Listens, dc.wssServer.ListenAddress())
+	}
+	if dc.quicServer != nil {
+		l.Listens = append(l.Listens, dc.quicServer.ListenAddress())
+	}
+	return l
+}
+
+type ChannelList struct {
+	Info map[string][]channel.ChannelInfo `json:"info" comment:"桥通道服务列表"`
+}
+
+func (l ChannelList) String() string {
+	return utils.FormatJson(l)
+}
+
+// GetChannelList -
+func (dc *DCenterBridge) GetChannelList() ChannelList {
+	cl := ChannelList{
+		Info: make(map[string][]channel.ChannelInfo),
+	}
+	keys := []string{}
+	dc.channels.Range(func(key, value interface{}) bool {
+		keys = append(keys, key.(string))
+		chs := value.([]channel.Channel)
+		var info []channel.ChannelInfo
+		for _, ch := range chs {
+			info = append(info, ch.Info())
+		}
+		cl.Info[key.(string)] = info
+		return true
+	})
+	return cl
 }
 
 // selectService -
@@ -298,26 +371,14 @@ func (dc *DCenterBridge) selectService(zone, serviceName string) (*discovery.Ser
 	return &service, nil
 }
 
-// CreateChannel - 创建桥通道.
-func (dc *DCenterBridge) CreateChannel(zone, serviceName string) (channel.Channel, error) {
-	if services, ok := dc.channels.Load(fmt.Sprintf("%s_%s", zone, serviceName)); ok {
-		if chs, ok := services.([]channel.Channel); ok { // 已经存在连接, 直接选择.
-			i := rand.Intn(len(chs))
-			fmt.Println(">>> channel: ", i, chs[i].ID())
-			return chs[i], nil
-		}
-	}
-	peer, err := dc.selectService(zone, serviceName)
-	if err != nil {
-		return nil, err
-	}
+// connectTo - 连接到peer, 返回通道.
+func (dc *DCenterBridge) connectTo(peer *discovery.Service) (channel.Channel, error) {
 	switch scheme := peer.Scheme(); scheme {
 	case "quic":
 		quicChannel := quic.NewQuicClient(dc.config.Self(), peer)
 		if err := quicChannel.Connect(dc.ctx); err != nil {
 			return nil, err
 		}
-		dc.channelChan <- quicChannel // send to chan.
 		logger.Debugf("connect to quic service: %+v, ok.", peer)
 		return quicChannel, nil
 	case "ws", "wss":
@@ -326,12 +387,62 @@ func (dc *DCenterBridge) CreateChannel(zone, serviceName string) (channel.Channe
 			return nil, err
 		}
 		logger.Debugf("connect to service")
-		dc.channelChan <- wsChannel // send to chan.
 		logger.Debugf("connect to ws service: %+v, ok.", peer)
 		return wsChannel, nil
 	default:
 		logger.Errorf("not support scheme: %s", scheme)
 		return nil, fmt.Errorf("not support scheme: %s", scheme)
+	}
+}
+
+func (dc *DCenterBridge) CreateChannelForTest(zone, serviceName, id, host string) (channel.Channel, error) {
+	peer := &discovery.Service{
+		Zone:    zone,
+		Service: serviceName,
+		Id:      id,
+		Host:    host,
+		Tag:     "primary",
+	}
+	if ch, err := dc.connectTo(peer); err != nil {
+		return nil, err
+	} else {
+		dc.channelChan <- ch // send to chan.
+		return ch, nil
+	}
+}
+
+func (dc *DCenterBridge) DeleteChannel(zone, serviceName string) error {
+	key := fmt.Sprintf("%s_%s", zone, serviceName)
+	if v, ok := dc.channels.Load(key); ok {
+		chs := v.([]channel.Channel)
+		for _, ch := range chs {
+			ch.Close()
+			break
+		}
+	} else {
+		return ErrChannelNotFound
+	}
+	return nil
+}
+
+// CreateChannel - 创建桥通道.
+func (dc *DCenterBridge) CreateChannel(zone, serviceName string) (channel.Channel, error) {
+	if services, ok := dc.channels.Load(fmt.Sprintf("%s_%s", zone, serviceName)); ok {
+		if chs, ok := services.([]channel.Channel); ok { // 已经存在连接, 直接选择.
+			i := rand.Intn(len(chs))
+			logger.Debugf(">>> get local cached channel: %d, %s", i, chs[i].String())
+			return chs[i], nil
+		}
+	}
+	peer, err := dc.selectService(zone, serviceName)
+	if err != nil {
+		return nil, err
+	}
+	if ch, err := dc.connectTo(peer); err != nil {
+		return nil, err
+	} else {
+		dc.channelChan <- ch // send to chan.
+		return ch, nil
 	}
 }
 

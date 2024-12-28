@@ -45,6 +45,10 @@ func NewWebsocketServer(self *discovery.Service, config *WebsocketConfig) *Webso
 	}
 }
 
+func (s *WebsocketServer) ListenAddress() string {
+	return s.config.Url()
+}
+
 // acceptWebsocket - create ws channel.
 func (s *WebsocketServer) acceptWebsocket(channelChan chan<- channel.Channel) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

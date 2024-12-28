@@ -67,10 +67,16 @@ func (q *QuicChannel) DoneChan() chan struct{} {
 	return q.doneChan
 }
 
+// InChan implements channel.Channel.
+func (q *QuicChannel) InChan() chan []byte {
+	return q.inChan
+}
+
 func (q *QuicChannel) init(conn quic.Connection, stream quic.Stream) *QuicChannel {
 	q.conn = conn
 	q.stream = stream
 	q.isConnected = true
+	q.self.Host = q.conn.LocalAddr().String()
 	return q
 }
 
@@ -79,14 +85,29 @@ func (q *QuicChannel) ID() string {
 	return q.peer.Id
 }
 
-// InChan implements channel.Channel.
-func (q *QuicChannel) InChan() chan []byte {
-	return q.inChan
-}
-
 // Key implements channel.Channel.
 func (q *QuicChannel) Key() string {
 	return q.peer.Key()
+}
+
+func (c *QuicChannel) Self() discovery.Service {
+	return c.self
+}
+func (c *QuicChannel) Peer() discovery.Service {
+	return c.peer
+}
+func (c *QuicChannel) Info() channel.ChannelInfo {
+	return channel.ChannelInfo{
+		Local: c.self,
+		Peer:  c.peer,
+	}
+}
+
+// String -
+func (c *QuicChannel) String() string {
+	return fmt.Sprintf("[%s:%s:%s]%s=>[%s:%s:%s]%s",
+		c.self.Service, c.self.Zone, c.self.Id, c.self.Host,
+		c.peer.Service, c.peer.Zone, c.peer.Id, c.peer.Host)
 }
 
 // ReadLoop implements channel.Channel.

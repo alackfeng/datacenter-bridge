@@ -32,6 +32,10 @@ func NewQuicServer(self *discovery.Service, config *QuicConfig) *QuicServer {
 	}
 }
 
+func (s *QuicServer) ListenAddress() string {
+	return s.config.Host
+}
+
 // generateTLSConfig -
 func (s *QuicServer) generateTLSConfig() *tls.Config {
 	if s.config.CertFile != "" && s.config.KeyFile != "" { // 加载文件的方式.

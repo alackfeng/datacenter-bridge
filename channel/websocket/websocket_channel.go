@@ -55,6 +55,7 @@ func newWebsocketChannel(self *discovery.Service, peer *discovery.Service, confi
 func (c *WebsocketChannel) init(conn *websocket.Conn) *WebsocketChannel {
 	c.conn = conn
 	c.isConnected = true
+	c.self.Host = c.conn.LocalAddr().String()
 	return c
 }
 
@@ -66,6 +67,26 @@ func (c *WebsocketChannel) ID() string {
 // Key - zone_service.
 func (c *WebsocketChannel) Key() string {
 	return c.peer.Key()
+}
+
+func (c *WebsocketChannel) Self() discovery.Service {
+	return c.self
+}
+func (c *WebsocketChannel) Peer() discovery.Service {
+	return c.peer
+}
+func (c *WebsocketChannel) Info() channel.ChannelInfo {
+	return channel.ChannelInfo{
+		Local: c.self,
+		Peer:  c.peer,
+	}
+}
+
+// String -
+func (c *WebsocketChannel) String() string {
+	return fmt.Sprintf("[%s:%s:%s]%s=>[%s:%s:%s]%s",
+		c.self.Service, c.self.Zone, c.self.Id, c.self.Host,
+		c.peer.Service, c.peer.Zone, c.peer.Id, c.peer.Host)
 }
 
 // DoneChan -
@@ -82,6 +103,7 @@ func (c *WebsocketChannel) InChan() chan []byte {
 func (c *WebsocketChannel) ReadLoop() {
 	logger.Debugf("websocket channel read loop, %s", c.self.Id)
 	defer func() {
+		logger.Debugf("websocket channel read close, %s", c.self.Id)
 		c.Close()
 	}()
 
@@ -147,6 +169,7 @@ func (c *WebsocketChannel) SendSafe(data []byte) error {
 func (c *WebsocketChannel) WriteLoop() {
 	logger.Debugf("websocket channel write loop, %s", c.self.Id)
 	defer func() {
+		logger.Debugf("websocket channel write close, %s", c.self.Id)
 		defer c.conn.Close()
 	}()
 
