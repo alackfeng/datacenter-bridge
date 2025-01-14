@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	datacenterbridge "github.com/alackfeng/datacenter-bridge"
+	"github.com/alackfeng/datacenter-bridge/channel"
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
@@ -40,8 +41,10 @@ func main() {
 		},
 	)
 	go func() {
-		dcBridge.ChannelsLoop(func(data []byte) {
+		dcBridge.ChannelsLoop(func(ch channel.Channel, data []byte) {
 			fmt.Println("client::main - get data:", string(data))
+		}, func(ch channel.Channel) {
+			fmt.Println("client::main - channel closed.")
 		})
 	}()
 	// time.Sleep(time.Second)

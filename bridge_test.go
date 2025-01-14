@@ -6,6 +6,7 @@ import (
 	"time"
 
 	dcb "github.com/alackfeng/datacenter-bridge"
+	"github.com/alackfeng/datacenter-bridge/channel"
 )
 
 func mockServerConfig() *dcb.Configure {
@@ -23,9 +24,9 @@ func TestDCenterBridge(t *testing.T) {
 	if err := ds.ListenAndServe(); err != nil { //
 		t.Error(err)
 	}
-	go ds.ChannelsLoop(func(data []byte) {
+	go ds.ChannelsLoop(func(ch channel.Channel, data []byte) {
 		t.Log("get data:", string(data))
-	})
+	}, func(ch channel.Channel) {})
 	ds.WaitQuit()
 
 	time.Sleep(time.Second * 3)

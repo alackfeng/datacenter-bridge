@@ -135,7 +135,7 @@ func NewDCenterBridgeWithClient(ctx context.Context, done chan bool, self AppInf
 }
 
 // channelRead - 读取消息转发.
-func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMsg) {
+func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMsg, channelClosed ClosedChannel) {
 	chInChan := ch.InChan()
 	chDoneChan := ch.DoneChan()
 	for {
@@ -154,6 +154,9 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 			for i, c := range chs {
 				if c == ch {
 					logger.Warn("channelRead closed, find it.")
+					if channelClosed != nil {
+						channelClosed(ch) // 通知用户关闭.
+					}
 					chs = slices.Delete(chs, i, i+1)
 					if len(chs) == 0 {
 						dc.channels.Delete(key) // 删除空列表.
@@ -169,19 +172,20 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 				logger.Warn("channelRead closed.")
 				return
 			}
-			channelMsg(data)
+			channelMsg(ch, data)
 			logger.Debugf("channelRead channel: %+v, data: %s.", ch, string(data))
 		}
 	}
 }
 
 // ChannelsLoop -
-func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg) error {
+func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg, channelClosed ClosedChannel) error {
 	logger.Info("channelsLoop begin.")
 	for {
 		select {
 		case <-dc.ctx.Done():
 			logger.Warn("channelsLoop done.")
+
 			return nil
 		case ch, ok := <-dc.channelChan:
 			if !ok {
@@ -190,7 +194,7 @@ func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg) error {
 			}
 			go ch.ReadLoop()
 			go ch.WriteLoop()
-			go dc.channelRead(ch, channelMsg)
+			go dc.channelRead(ch, channelMsg, channelClosed)
 
 			logger.Debugf("channelsLoop channel: %+v", ch)
 			if v, ok := dc.channels.Load(ch.Key()); ok {

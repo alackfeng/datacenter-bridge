@@ -12,6 +12,7 @@ import (
 	"time"
 
 	dcb "github.com/alackfeng/datacenter-bridge"
+	"github.com/alackfeng/datacenter-bridge/channel"
 	"github.com/alackfeng/datacenter-bridge/logger"
 )
 
@@ -123,8 +124,10 @@ func main() {
 	if err := dcBridge.ListenAndServe(); err != nil {
 		logger.Fatalf("server::main - server error: %v", err)
 	}
-	go dcBridge.ChannelsLoop(func(data []byte) {
+	go dcBridge.ChannelsLoop(func(ch channel.Channel, data []byte) {
 		fmt.Println("server::main - get data:", string(data))
+	}, func(ch channel.Channel) {
+		fmt.Println("server::main - channel closed.")
 	})
 
 	sig := make(chan os.Signal, 1)

@@ -114,7 +114,7 @@ func (e *EtcdRegistry) Register(ctx context.Context, service Service) error {
 			for {
 				select {
 				case <-keepAliveCh:
-					fmt.Println("keep alive.")
+					fmt.Println("etcd discovery: keep alive.")
 				case <-ctx.Done():
 					return
 				}

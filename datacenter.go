@@ -5,13 +5,15 @@ import (
 )
 
 // GetChannelMsg - get bridge channel message.
-type GetChannelMsg func(data []byte)
+type GetChannelMsg func(ch channel.Channel, data []byte)
+type ClosedChannel func(ch channel.Channel)
 
 // Datacenter - datacenter bridge interface.
 type Datacenter interface {
-	ListenAndServe() error            // 启动服务监听.
-	ChannelsLoop(GetChannelMsg) error // client loop.
-	WaitQuit()                        // 等待退出.
+	ListenAndServe() error // 启动服务监听.
+	WaitQuit()             // 等待退出.
+
+	ChannelsLoop(GetChannelMsg, ClosedChannel) error // client loop.
 
 	CreateChannel(zone, service string) (channel.Channel, error) // 创建桥通道:区域|服务名称.
 	DeleteChannel(zone, service string) error                    // 删除桥通道:区域|服务名称.
