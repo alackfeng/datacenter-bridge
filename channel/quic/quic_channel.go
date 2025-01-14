@@ -128,17 +128,17 @@ func (q *QuicChannel) ReadLoop() {
 				logger.Errorf("read data error: %v", err)
 				return
 			} else if data.Type == PingMessage {
-				logger.Warnf("quic channel receive message type: %d", data.Type)
+				logger.Debugf("quic channel receive message type: %d", data.Type)
 				if err := q.writeMessage(PongMessage, []byte{}); err != nil {
 					logger.Errorf("quic channel write message error, %s", err.Error())
 					return
 				}
 				continue
 			} else if data.Type == PongMessage {
-				logger.Warnf("quic channel receive message type: %d", data.Type)
+				logger.Debugf("quic channel receive message type: %d", data.Type)
 				continue
 			}
-			fmt.Println("quic channel read data: ", data.Timestamp, string(data.Payload))
+			// fmt.Println("quic channel read data: ", data.Timestamp, string(data.Payload))
 			q.inChan <- data.Payload
 		}
 	}
