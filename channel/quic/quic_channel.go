@@ -138,7 +138,7 @@ func (q *QuicChannel) ReadLoop() {
 				logger.Debugf("quic channel receive message type: %d", data.Type)
 				continue
 			}
-			// fmt.Println("quic channel read data: ", data.Timestamp, string(data.Payload))
+			logger.Debugf("quic channel read data: %d, payload len: %d", data.Timestamp, len(data.Payload))
 			q.inChan <- data.Payload
 		}
 	}

@@ -89,6 +89,8 @@ func (c Configure) Register() *discovery.Service {
 	host := c.Servers.Ws.Host
 	if c.Servers.Quic.Up {
 		host = c.Servers.Quic.Host
+	} else if c.Servers.Wss.Up {
+		host = c.Servers.Wss.Host
 	}
 	return &discovery.Service{
 		Zone:    c.Zone,

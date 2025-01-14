@@ -137,7 +137,7 @@ func (c *WebsocketChannel) ReadLoop() {
 			if err != nil {
 				return
 			}
-			logger.Debugf("websocket channel read message<%d> %s", messageType, message)
+			logger.Debugf("websocket channel read message<%d> payload len: %d", messageType, len(message))
 			c.inChan <- message
 		}
 	}
@@ -154,7 +154,7 @@ func (c *WebsocketChannel) writeMessage(messageType int, data []byte) error {
 }
 
 func (c *WebsocketChannel) SendSafe(data []byte) error {
-	fmt.Println(">>> websocket channel send safe", string(data))
+	// fmt.Println(">>> websocket channel send safe", string(data))
 	select {
 	case c.outChan <- data:
 		return nil
