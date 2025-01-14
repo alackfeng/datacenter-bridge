@@ -2,6 +2,7 @@ package datacenterbridge
 
 import (
 	"github.com/alackfeng/datacenter-bridge/channel"
+	"github.com/alackfeng/datacenter-bridge/discovery"
 )
 
 // GetChannelMsg - get bridge channel message.
@@ -14,6 +15,8 @@ type Datacenter interface {
 	WaitQuit()             // 等待退出.
 
 	ChannelsLoop(GetChannelMsg, ClosedChannel) error // client loop.
+
+	DiscoveryServers(zone, service string) ([]discovery.Service, error) // 发现桥通道:区域|服务名称.
 
 	CreateChannel(zone, service string) (channel.Channel, error) // 创建桥通道:区域|服务名称.
 	DeleteChannel(zone, service string) error                    // 删除桥通道:区域|服务名称.

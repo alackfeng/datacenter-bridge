@@ -173,7 +173,7 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 				return
 			}
 			channelMsg(ch, data)
-			logger.Debugf("channelRead channel: %+v, data: %s.", ch, string(data))
+			// logger.Debugf("channelRead channel: %+v, data: %s.", ch, string(data))
 		}
 	}
 }
@@ -397,6 +397,15 @@ func (dc *DCenterBridge) connectTo(peer *discovery.Service) (channel.Channel, er
 		logger.Errorf("not support scheme: %s", scheme)
 		return nil, fmt.Errorf("not support scheme: %s", scheme)
 	}
+}
+
+func (dc *DCenterBridge) DiscoveryServers(zone, service string) ([]discovery.Service, error) {
+	// 通过discovery获取service列表.
+	services, err := dc.discovery.GetServices(dc.ctx, zone, service)
+	if err != nil {
+		return nil, err
+	}
+	return services, nil
 }
 
 func (dc *DCenterBridge) CreateChannelForTest(zone, serviceName, id, host string) (channel.Channel, error) {

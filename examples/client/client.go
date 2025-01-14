@@ -15,12 +15,14 @@ import (
 
 var mode string
 var discoveryHost string
+var useConsul bool
 
 func main() {
 	fmt.Println("client::main - begin.")
 
 	flag.StringVar(&mode, "model", "debug", "run as release mode")
 	flag.StringVar(&discoveryHost, "discoveryHost", "http://127.0.0.1:8500", "consul discovery host")
+	flag.BoolVar(&useConsul, "consul", false, "use consul discovery")
 	flag.Parse()
 
 	fmt.Printf("client::main - release mode<%v> \n", mode)
@@ -32,12 +34,17 @@ func main() {
 
 	dcBridge := datacenterbridge.NewDCenterBridgeWithClient(ctx, done,
 		datacenterbridge.AppInfo{
-			Zone:    "us",
+			Zone:    "us-001",
 			Service: "gw-dcb-service",
 			Id:      "xxx",
 		}, datacenterbridge.ConsulConfigure{
-			Up:   true,
+			Up:   useConsul,
 			Host: discoveryHost,
+		}, datacenterbridge.EtcdConfigure{
+			Up:         !useConsul,
+			Endpoints:  []string{discoveryHost},
+			Prefix:     "/dcbridge",
+			GrantedTTL: 10,
 		},
 	)
 	go func() {
@@ -49,7 +56,14 @@ func main() {
 	}()
 	// time.Sleep(time.Second)
 
-	ch, err := dcBridge.CreateChannel("us", "gw-dcb-service")
+	servers, err := dcBridge.DiscoveryServers("cn-001", "gw-dcb-service")
+	if err != nil {
+		fmt.Println("client::main - discovery error:", err)
+		os.Exit(1)
+	}
+	fmt.Printf(">>discovery servers: %+v\n", servers)
+
+	ch, err := dcBridge.CreateChannel(servers[0].Zone, servers[0].Service)
 	if err != nil {
 		fmt.Println("client::main - connect error:", err)
 		os.Exit(1)
