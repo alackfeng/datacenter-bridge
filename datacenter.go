@@ -18,9 +18,9 @@ type Datacenter interface {
 
 	DiscoveryServers(zone, service string) ([]discovery.Service, error) // 发现桥通道:区域|服务名称.
 
-	CreateChannel(zone, service string) (channel.Channel, error) // 创建桥通道:区域|服务名称.
-	DeleteChannel(zone, service string) error                    // 删除桥通道:区域|服务名称.
-	SendData(zone, service string, data []byte) error            // 发送数据:区域|服务名称|数据.
+	CreateChannel(zone, service, id string) (channel.Channel, error) // 创建桥通道:区域|服务名称.
+	DeleteChannel(zone, service, id string) error                    // 删除桥通道:区域|服务名称.
+	SendData(zone, service string, data []byte) error                // 发送数据:区域|服务名称|数据.
 
 	CreateChannelForTest(zone, service, id, host string) (channel.Channel, error) // for test, no use production.
 

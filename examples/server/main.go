@@ -81,7 +81,7 @@ func consolePanel(ctx context.Context, cancel context.CancelFunc) {
 					fmt.Println("!!!channel_delete need 3 params: zone service!!!")
 					continue
 				}
-				if err := dcBridge.DeleteChannel(options[1], options[2]); err != nil {
+				if err := dcBridge.DeleteChannel(options[1], options[2], ""); err != nil {
 					fmt.Println("!!!channel_delete error: ", err)
 				} else {
 					fmt.Println("channel_delete ok.")

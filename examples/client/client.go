@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	datacenterbridge "github.com/alackfeng/datacenter-bridge"
 	"github.com/alackfeng/datacenter-bridge/channel"
@@ -63,7 +64,7 @@ func main() {
 	}
 	fmt.Printf(">>discovery servers: %+v\n", servers)
 
-	ch, err := dcBridge.CreateChannel(servers[0].Zone, servers[0].Service)
+	ch, err := dcBridge.CreateChannel(servers[0].Zone, servers[0].Service, servers[0].Id)
 	if err != nil {
 		fmt.Println("client::main - connect error:", err)
 		os.Exit(1)
@@ -73,6 +74,9 @@ func main() {
 	}
 
 	fmt.Println("client::main - running.")
+
+	time.Sleep(time.Second * 10)
+	dcBridge.DeleteChannel(servers[0].Zone, servers[0].Service, servers[0].Id)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)

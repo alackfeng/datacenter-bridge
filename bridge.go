@@ -424,13 +424,18 @@ func (dc *DCenterBridge) CreateChannelForTest(zone, serviceName, id, host string
 	}
 }
 
-func (dc *DCenterBridge) DeleteChannel(zone, serviceName string) error {
+func (dc *DCenterBridge) DeleteChannel(zone, serviceName, id string) error {
 	key := fmt.Sprintf("%s_%s", zone, serviceName)
 	if v, ok := dc.channels.Load(key); ok {
 		chs := v.([]channel.Channel)
 		for _, ch := range chs {
-			ch.Close()
-			break
+			if id == "" {
+				ch.Close()
+			} else {
+				if ch.ID() == id {
+					ch.Close()
+				}
+			}
 		}
 	} else {
 		return ErrChannelNotFound
@@ -439,9 +444,17 @@ func (dc *DCenterBridge) DeleteChannel(zone, serviceName string) error {
 }
 
 // CreateChannel - 创建桥通道.
-func (dc *DCenterBridge) CreateChannel(zone, serviceName string) (channel.Channel, error) {
+func (dc *DCenterBridge) CreateChannel(zone, serviceName, id string) (channel.Channel, error) {
 	if services, ok := dc.channels.Load(fmt.Sprintf("%s_%s", zone, serviceName)); ok {
 		if chs, ok := services.([]channel.Channel); ok { // 已经存在连接, 直接选择.
+			if id != "" {
+				for _, ch := range chs {
+					if ch.ID() == id {
+						return ch, nil
+					}
+				}
+				return nil, ErrChannelNotFound
+			}
 			i := rand.Intn(len(chs))
 			logger.Debugf(">>> get local cached channel: %d, %s", i, chs[i].String())
 			return chs[i], nil
@@ -461,7 +474,7 @@ func (dc *DCenterBridge) CreateChannel(zone, serviceName string) (channel.Channe
 
 // SendData -
 func (dc *DCenterBridge) SendData(zone, serviceName string, data []byte) error {
-	ch, err := dc.CreateChannel(zone, serviceName)
+	ch, err := dc.CreateChannel(zone, serviceName, "")
 	if err != nil {
 		return err
 	}
