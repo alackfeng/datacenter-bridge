@@ -1,0 +1,46 @@
+{
+    "node_name": "consul-client-1",
+    "datacenter": "cn-001",
+    "domain": "consul",
+    "data_dir": "/consul/data",
+    "ui_config": {
+        "enabled" : true
+    },
+    "retry_join":[
+        "consul-server-1",
+        "consul-server-2",
+        "consul-server-3"
+     ],
+    "encrypt": "iIz10PiR7dNmuAaUMeMqyYJbOxeUrUbKC2AcJic8SkE=",
+    "tls": {
+        "defaults": {
+            "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+            "verify_incoming": true,
+            "verify_outgoing": true
+        },
+        "internal_rpc": {
+            "verify_server_hostname": true
+        }
+    },
+    "addresses": {
+        "grpc" : "127.0.0.1",
+        "http" : "0.0.0.0"
+    },
+    "auto_encrypt": {
+        "tls": true
+    },
+    "ports": {
+        "http": 8500,
+        "https": 8501,
+        "grpc": 8502,
+        "grpc_tls": 8503
+    },
+    "connect": {
+        "enabled": true
+    },
+    "performance": {
+        "raft_multiplier": 1
+    }
+
+}
+

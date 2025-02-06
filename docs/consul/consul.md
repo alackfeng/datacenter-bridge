@@ -64,4 +64,6 @@ consul-template -consul-addr=http://consul1:12900 -template "/etc/nginx/nginx.ct
 ​
 
 
+# 开发模式.
+consul agent -dev -client=0.0.0.0
 ​

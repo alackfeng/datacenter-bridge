@@ -1,0 +1,68 @@
+version: '3.7'
+
+services:
+  consul-server-1:
+    image: hashicorp/consul:latest
+    container_name: consul-server-1
+    restart: always
+    volumes:
+     - ./config/consul-server-1.json:/consul/config/consul-server-1.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs/:/consul/logs/
+     - ./data/consul-server-1:/consul/data
+     - ./consul-acl.json:/consul/config/consul-acl.json:ro
+    networks:
+      - consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -bootstrap-expect=3 -client=0.0.0.0 -log-file=/consul/logs/consul-server-1.log"
+
+  consul-server-2:
+    image: hashicorp/consul:latest
+    container_name: consul-server-2
+    restart: always
+    volumes:
+     - ./config/consul-server-2.json:/consul/config/consul-server-2.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs/:/consul/logs/
+     - ./data/consul-server-2:/consul/data
+     - ./consul-acl.json:/consul/config/consul-acl.json:ro
+    networks:
+      - consul
+    command: "agent -bootstrap-expect=3 -client=0.0.0.0  -log-file=/consul/logs/consul-server-2.log "
+
+  consul-server-3:
+    image: hashicorp/consul:latest
+    container_name: consul-server-3
+    restart: always
+    volumes:
+     - ./config/consul-server-3.json:/consul/config/consul-server-3.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs/:/consul/logs/
+     - ./data/consul-server-3:/consul/data
+     - ./consul-acl.json:/consul/config/consul-acl.json:ro
+    networks:
+      - consul
+    command: "agent -bootstrap-expect=3 -client=0.0.0.0  -log-file=/consul/logs/consul-server-3.log"
+
+  consul-client-1:
+    image: hashicorp/consul:latest
+    container_name: consul-client-1
+    restart: always
+    volumes:
+     - ./config/consul-client-1.json:/consul/config/consul-client-1.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs/:/consul/logs/
+     - ./data/consul-client-1:/consul/data
+     - ./consul-acl.json:/consul/config/consul-acl.json:ro
+    networks:
+      - consul
+    command: "agent -client=0.0.0.0  -log-file=/consul/logs/consul-client-1.log"
+    
+networks:
+  consul:
+    external: true
+      # driver: bridge
+

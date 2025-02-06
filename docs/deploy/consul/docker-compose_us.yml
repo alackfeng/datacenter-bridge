@@ -1,0 +1,64 @@
+version: '3.7'
+
+services:
+  consul-us-server-1:
+    image: hashicorp/consul:latest
+    container_name: consul-us-server-1
+    restart: always
+    volumes:
+     - ./config_us/consul-server-1.json:/consul/config/consul-server-1.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs_us/:/consul/logs/
+     - ./data_us/consul-server-1:/consul/data
+    networks:
+      - consul
+        #    ports:
+        #- "8500:8500"
+        #- "8600:8600/tcp"
+        #- "8600:8600/udp"
+    command: "agent -bootstrap-expect=3 -client=0.0.0.0 -log-file=/consul/logs/consul-server-1.log"
+
+  consul-us-server-2:
+    image: hashicorp/consul:latest
+    container_name: consul-us-server-2
+    restart: always
+    volumes:
+     - ./config_us/consul-server-2.json:/consul/config/consul-server-2.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs_us/:/consul/logs/
+     - ./data_us/consul-server-2:/consul/data
+    networks:
+      - consul
+    command: "agent -bootstrap-expect=3 -client=0.0.0.0  -log-file=/consul/logs/consul-server-2.log "
+
+  consul-us-server-3:
+    image: hashicorp/consul:latest
+    container_name: consul-us-server-3
+    restart: always
+    volumes:
+     - ./config_us/consul-server-3.json:/consul/config/consul-server-3.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs_us/:/consul/logs/
+     - ./data_us/consul-server-3:/consul/data
+    networks:
+      - consul
+    command: "agent -bootstrap-expect=3 -client=0.0.0.0  -log-file=/consul/logs/consul-server-3.log"
+
+  consul-us-client-1:
+    image: hashicorp/consul:latest
+    container_name: consul-us-client-1
+    restart: always
+    volumes:
+     - ./config_us/consul-client-1.json:/consul/config/consul-client-1.json:ro
+     - ./certs/:/consul/config/certs/:ro
+     - ./logs_us/:/consul/logs/
+     - ./data_us/consul-client-1:/consul/data
+    networks:
+      - consul
+    command: "agent -client=0.0.0.0  -log-file=/consul/logs/consul-client-1.log"
+    
+networks:
+  consul:
+    external: true
+      # driver: bridge
+
