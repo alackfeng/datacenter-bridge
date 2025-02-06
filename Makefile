@@ -12,6 +12,7 @@ GOMOD=$(GOCMD) mod
 BINARY_EXE=$(shell go env GOEXE)
 BINARY_CLIENT_NAME=dcenter_bridge_client$(BINARY_EXE)
 BINARY_SERVER_NAME=dcenter_bridge_server$(BINARY_EXE)
+BINARY_HEALTH_CHECK=health_check$(BINARY_EXE)
 SWAG_BIN=$(shell go env GOPATH)/bin/swag
 
 all: build
@@ -21,6 +22,7 @@ all: build
 dcenter_bridge:
 	$(GOBUILD) -o bin/$(BINARY_CLIENT_NAME) -v -gcflags '-N -l' examples/client/client.go
 	$(GOBUILD) -o bin/$(BINARY_SERVER_NAME) -v -gcflags '-N -l' examples/server/main.go
+	$(GOBUILD) -o bin/$(BINARY_HEALTH_CHECK) -v -ldflags="-s -w" -gcflags '-N -l' health/health_check.go
 
 .PHONY: docs
 docs:

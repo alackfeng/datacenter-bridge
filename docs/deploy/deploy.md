@@ -42,7 +42,7 @@ orb pull /home/taurus/deploy/consul_20250206.zip
 
 #### 创建 Consul 数据中心.
 
-docker network create --driver bridge --subnet=192.168.100.0/24 consul
+docker network create --driver bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 consul
 
 docker compose -f consul/docker-compose.yml up -d
 docker compose -f consul/docker-compose.yml up consul-server-1 -d

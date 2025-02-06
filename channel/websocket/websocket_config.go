@@ -43,7 +43,7 @@ func NewWebsocketConfig(host string) *WebsocketConfig {
 		ReadLimit:       1024 * 1024,
 		HeartTimeoutS:   30,
 		HeartCount:      3,
-		HandshakeS:      5,
+		HandshakeS:      3,
 	}
 }
 
