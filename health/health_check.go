@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/alackfeng/datacenter-bridge/channel/quic"
 	"github.com/alackfeng/datacenter-bridge/channel/websocket"
@@ -36,7 +37,13 @@ func checkQuic() error {
 		Host:    host,
 		Tag:     "primary",
 	})
-	return qc.Connect(context.Background())
+	err := qc.Connect(context.Background())
+	go func() {
+		qc.WriteLoop()
+	}()
+	qc.Close()
+	time.Sleep(time.Millisecond * 1000)
+	return err
 }
 
 func checkWebsocket() error {
@@ -51,7 +58,9 @@ func checkWebsocket() error {
 		Host:    host,
 		Tag:     "primary",
 	})
-	return wc.Connect(context.Background())
+	err := wc.Connect(context.Background())
+	wc.Close()
+	return err
 }
 
 func main() {

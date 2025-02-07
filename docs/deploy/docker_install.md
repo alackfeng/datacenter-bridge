@@ -28,3 +28,11 @@ sudo usermod -aG docker $USER
 
 
 ## docker compose deploy.
+
+
+## golang install.
+wget https://go.dev/dl/go1.23.2.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.23.2.linux-amd64.tar.gz
+vi /etc/profile ====>
+export PATH=$PATH:/usr/local/go/bin
+<====

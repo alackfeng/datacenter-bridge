@@ -203,7 +203,7 @@ func (c *WebsocketChannel) WriteLoop() {
 // Colse -
 func (c *WebsocketChannel) Close() error {
 	c.closeOnce.Do(func() {
-		logger.Warnf("websocket channel close, %s", c.self.Id)
+		// logger.Warnf("websocket channel close, %s", c.self.Id)
 		c.conn.SetReadDeadline(time.Now())
 		c.conn.SetWriteDeadline(time.Now())
 		close(c.doneChan)

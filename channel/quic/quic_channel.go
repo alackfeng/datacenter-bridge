@@ -56,7 +56,7 @@ func newQuicChannel(self *discovery.Service, peer *discovery.Service, config *Qu
 // Close implements channel.Channel.
 func (q *QuicChannel) Close() error {
 	q.closeOnce.Do(func() {
-		logger.Warnf("quic channel close, %s", q.self.Id)
+		// logger.Warnf("quic channel close, %s", q.self.Id)
 		close(q.doneChan)
 	})
 	return nil
@@ -181,7 +181,7 @@ func (q *QuicChannel) WriteLoop() {
 	for {
 		select {
 		case <-q.doneChan:
-			logger.Warnf("quic channel done closed, %s", q.self.Id)
+			// logger.Warnf("quic channel done closed, %s", q.self.Id)
 			return
 		case data, ok := <-q.outChan:
 			if !ok {
