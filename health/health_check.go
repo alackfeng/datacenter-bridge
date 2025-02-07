@@ -38,11 +38,13 @@ func checkQuic() error {
 		Tag:     "primary",
 	})
 	err := qc.Connect(context.Background())
-	go func() {
-		qc.WriteLoop()
-	}()
-	qc.Close()
-	time.Sleep(time.Millisecond * 1000)
+	if err == nil {
+		go func() {
+			qc.WriteLoop()
+		}()
+		qc.Close()
+		time.Sleep(time.Millisecond * 1000)
+	}
 	return err
 }
 
@@ -59,7 +61,9 @@ func checkWebsocket() error {
 		Tag:     "primary",
 	})
 	err := wc.Connect(context.Background())
-	wc.Close()
+	if err == nil {
+		wc.Close()
+	}
 	return err
 }
 
