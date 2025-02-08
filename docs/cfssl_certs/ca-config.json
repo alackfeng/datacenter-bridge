@@ -1,0 +1,31 @@
+{
+  "CN": "consul-ca",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "L": "Beijing",
+      "O": "Consul",
+      "OU": "CA",
+      "ST": "Beijing"
+    }
+  ],
+  "signing": {
+    "default": {
+      "expiry": "8760h"
+    },
+    "profiles": {
+      "server": {
+        "expiry": "8760h",
+        "usages": ["signing", "key encipherment", "server auth"]
+      },
+      "client": {
+        "expiry": "8760h",
+        "usages": ["signing", "key encipherment", "client auth"]
+      }
+    }
+  }
+}
