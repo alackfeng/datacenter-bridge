@@ -14,16 +14,18 @@ import (
 // ConsulDiscovery - use consul discovery.
 type ConsulRegistry struct {
 	baseUrl string
+	token   string
 	httpUtil.HttpClient
 }
 
 var _ Discovery = (*ConsulRegistry)(nil)
 
 // NewConsulRegistry -
-func NewConsulRegistry(baseUrl string) Discovery {
+func NewConsulRegistry(baseUrl string, token string) Discovery {
 	return &ConsulRegistry{
 		HttpClient: *httpUtil.NewHttpClient(),
 		baseUrl:    baseUrl,
+		token:      token,
 	}
 }
 
@@ -117,7 +119,11 @@ func (c HealthService) To() *Service {
 
 // GetServices - 获取某服务列表.
 func (c *ConsulRegistry) GetServices(ctx context.Context, zone, serviceName string) ([]Service, error) {
-	res, err := c.Get(ctx, fmt.Sprintf("%s/v1/health/service/%s?dc=%s&passing", c.baseUrl, serviceName, zone), nil)
+	healthUrl := fmt.Sprintf("%s/v1/health/service/%s?dc=%s&passing", c.baseUrl, serviceName, zone)
+	if c.token != "" {
+		healthUrl = fmt.Sprintf("%s/v1/health/service/%s?dc=%s&passing&token=%s", c.baseUrl, serviceName, zone, c.token)
+	}
+	res, err := c.Get(ctx, healthUrl, nil)
 	if err != nil {
 		logger.Errorf("consul discovery GetServices err: %v", err)
 		return nil, err

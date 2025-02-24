@@ -25,7 +25,7 @@ func TestConsulRegsitery(t *testing.T) {
 	ctx := context.Background()
 	for i, tc := range testcases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.remark), func(t *testing.T) {
-			dis := discovery.NewConsulRegistry("http://127.0.0.1:23791")
+			dis := discovery.NewConsulRegistry("http://127.0.0.1:23791", "")
 			if dis == nil {
 				t.Error("registry is nil")
 			}

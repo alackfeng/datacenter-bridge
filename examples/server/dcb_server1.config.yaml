@@ -13,7 +13,8 @@ app:
   discovery:
     consul:
       up: true
-      host: http://127.0.0.1:8500
+      host: http://127.0.0.1:8500"
+      token: ""
     etcd:
       up: true
       endpoints: [127.0.0.1:2379]

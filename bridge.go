@@ -211,7 +211,7 @@ func (dc *DCenterBridge) ChannelsLoop(channelMsg GetChannelMsg, channelClosed Cl
 func (dc *DCenterBridge) initDiscovery() error {
 	d := dc.config.Discovery
 	if d.Consul.Up {
-		dc.discovery = discovery.NewConsulRegistry(d.Consul.Host)
+		dc.discovery = discovery.NewConsulRegistry(d.Consul.Host, d.Consul.Token)
 		logger.Infof("use discovery consul up<%v>, host<%v>", d.Consul.Up, d.Consul.Host)
 	} else if d.Etcd.Up {
 		etcdDis := discovery.NewEtcdRegistry(d.Etcd.Endpoints, d.Etcd.Prefix, d.Etcd.GrantedTTL)

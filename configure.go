@@ -172,8 +172,9 @@ func (c *DiscoveryConfigure) check() error {
 
 // ConsulConfigure-
 type ConsulConfigure struct {
-	Up   bool   `yaml:"up" json:"up" comment:"是否启用"`
-	Host string `yaml:"host" json:"host" comment:"http://Ip:Port"`
+	Up    bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host  string `yaml:"host" json:"host" comment:"http://Ip:Port"`
+	Token string `yaml:"token" json:"token" comment:"acl认证"`
 }
 
 type EtcdConfigure struct {
