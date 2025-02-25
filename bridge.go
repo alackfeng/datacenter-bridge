@@ -144,8 +144,8 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 			logger.Warn("channelRead done.")
 			return
 		case <-chDoneChan:
-			logger.Warn("channelRead closed.")
 			key := ch.Key()
+			logger.Warnf("channelRead closed. key %s", key)
 			v, ok := dc.channels.Load(key)
 			if !ok {
 				continue
@@ -153,14 +153,16 @@ func (dc *DCenterBridge) channelRead(ch channel.Channel, channelMsg GetChannelMs
 			chs := v.([]channel.Channel)
 			for i, c := range chs {
 				if c == ch {
-					logger.Warn("channelRead closed, find it.")
+					logger.Warnf("channelRead closed, find key. %s, %d => %d", key, i, len(chs))
 					if channelClosed != nil {
 						channelClosed(ch) // 通知用户关闭.
 					}
 					chs = slices.Delete(chs, i, i+1)
 					if len(chs) == 0 {
+						logger.Warnf("channelRead closed, delete key. %s, %d => %d", key, i, len(chs))
 						dc.channels.Delete(key) // 删除空列表.
 					} else {
+						logger.Warnf("channelRead closed, restore key. %s, %d => %d", key, i, len(chs))
 						dc.channels.Store(key, chs)
 					}
 					break
