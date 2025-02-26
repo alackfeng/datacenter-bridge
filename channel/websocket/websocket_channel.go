@@ -56,6 +56,9 @@ func (c *WebsocketChannel) init(conn *websocket.Conn) *WebsocketChannel {
 	c.conn = conn
 	c.isConnected = true
 	c.self.Host = c.conn.LocalAddr().String()
+	if !c.isClient {
+		c.peer.Host = c.conn.RemoteAddr().String() // add remote addr for peer.
+	}
 	logger.Warnf("websocket channel init, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
 	return c
 }
@@ -138,7 +141,7 @@ func (c *WebsocketChannel) ReadLoop() {
 			if err != nil {
 				return
 			}
-			logger.Warnf("websocket channel read message<%d> payload len: %d, from %s=>%s:%s", messageType, len(message), c.self.Id, c.peer.Id, c.peer.Host)
+			logger.Debugf("websocket channel read message<%d> payload len: %d, from %s=>%s:%s", messageType, len(message), c.self.Id, c.peer.Id, c.peer.Host)
 			c.inChan <- message
 		}
 	}
