@@ -59,7 +59,7 @@ func (c *WebsocketChannel) init(conn *websocket.Conn) *WebsocketChannel {
 	if !c.isClient {
 		c.peer.Host = c.conn.RemoteAddr().String() // add remote addr for peer.
 	}
-	logger.Warnf("websocket channel init, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+	logger.Warnf("websocket channel init, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 	return c
 }
 
@@ -105,9 +105,9 @@ func (c *WebsocketChannel) InChan() chan []byte {
 
 // ReadLoop -
 func (c *WebsocketChannel) ReadLoop() {
-	logger.Warnf("websocket channel read loop, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+	logger.Warnf("websocket channel read loop, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 	defer func() {
-		logger.Warnf("websocket channel read close, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+		logger.Warnf("websocket channel read close, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 		c.Close()
 	}()
 
@@ -115,16 +115,16 @@ func (c *WebsocketChannel) ReadLoop() {
 	c.conn.SetReadDeadline(c.config.ReadDeadline())
 	if c.isClient {
 		c.conn.SetPongHandler(func(data string) error {
-			logger.Warnf("websocket channel recv pong message, %s, from %s=>%s:%s", data, c.self.Id, c.peer.Id, c.peer.Host)
+			logger.Debugf("websocket channel recv pong message, %s, from %s(%s)=>%s(%s)", data, c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 			c.conn.SetReadDeadline(c.config.ReadDeadline())
 			return nil
 		})
 	} else {
 		c.conn.SetPingHandler(func(data string) error {
-			logger.Warnf("websocket channel recv ping message %s, from %s=>%s:%s", data, c.self.Id, c.peer.Id, c.peer.Host)
+			logger.Debugf("websocket channel recv ping message %s, from %s(%s)=>%s(%s)", data, c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 			c.conn.SetReadDeadline(c.config.ReadDeadline())
 			if err := c.conn.WriteControl(websocket.PongMessage, []byte{}, c.config.WriteDeadline()); err != nil {
-				logger.Errorf("websocket channel write pong message error, %s, from %s=>%s:%s", err.Error(), c.self.Id, c.peer.Id, c.peer.Host)
+				logger.Errorf("websocket channel write pong message error, %s, from %s(%s)=>%s(%s)", err.Error(), c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 				return err
 			}
 			return nil
@@ -134,14 +134,14 @@ func (c *WebsocketChannel) ReadLoop() {
 	for {
 		select {
 		case <-c.doneChan:
-			logger.Warnf("websocket channel done closed, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+			logger.Warnf("websocket channel done closed, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 			return
 		default:
 			messageType, message, err := c.conn.ReadMessage()
 			if err != nil {
 				return
 			}
-			logger.Debugf("websocket channel read message<%d> payload len: %d, from %s=>%s:%s", messageType, len(message), c.self.Id, c.peer.Id, c.peer.Host)
+			logger.Debugf("websocket channel read message<%d> payload len: %d, from %s(%s)=>%s(%s)", messageType, len(message), c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 			c.inChan <- message
 		}
 	}
@@ -171,9 +171,9 @@ func (c *WebsocketChannel) SendSafe(data []byte) error {
 
 // WriteLoop -
 func (c *WebsocketChannel) WriteLoop() {
-	logger.Warnf("websocket channel write loop, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+	logger.Warnf("websocket channel write loop, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 	defer func() {
-		logger.Warnf("websocket channel write close, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+		logger.Warnf("websocket channel write close, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 		c.conn.Close()
 	}()
 
@@ -181,24 +181,24 @@ func (c *WebsocketChannel) WriteLoop() {
 	for {
 		select {
 		case <-c.doneChan:
-			logger.Warnf("websocket channel done closed, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+			logger.Warnf("websocket channel done closed, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 			return
 		case message, ok := <-c.outChan:
 			if !ok {
-				logger.Warnf("websocket channel out chan closed, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+				logger.Warnf("websocket channel out chan closed, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 				return
 			}
 			if err := c.writeMessage(websocket.BinaryMessage, message); err != nil {
-				logger.Errorf("websocket channel write message error, %s", err.Error())
+				logger.Errorf("websocket channel write message error, %s, from %s(%s)=>%s(%s)", err.Error(), c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 				return
 			}
 		case <-ticker.C:
 			if c.isClient {
 				if err := c.writeMessage(websocket.PingMessage, []byte{}); err != nil {
-					logger.Errorf("websocket channel write ping message error, %s, from %s=>%s:%s", err.Error(), c.self.Id, c.peer.Id, c.peer.Host)
+					logger.Errorf("websocket channel write ping message error, %s, from %s(%s)=>%s(%s)", err.Error(), c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 					return
 				}
-				logger.Warnf("websocket channel send ping message, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+				logger.Warnf("websocket channel send ping message, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 			}
 		}
 	}
@@ -207,7 +207,7 @@ func (c *WebsocketChannel) WriteLoop() {
 // Colse -
 func (c *WebsocketChannel) Close() error {
 	c.closeOnce.Do(func() {
-		logger.Warnf("websocket channel close, from %s=>%s:%s", c.self.Id, c.peer.Id, c.peer.Host)
+		logger.Warnf("websocket channel close, from %s(%s)=>%s(%s)", c.self.Id, c.self.Host, c.peer.Id, c.peer.Host)
 		c.conn.SetReadDeadline(time.Now())
 		c.conn.SetWriteDeadline(time.Now())
 		close(c.doneChan)
