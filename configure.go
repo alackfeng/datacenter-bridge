@@ -125,36 +125,42 @@ type WebsocketConfigure struct {
 	Up   bool   `yaml:"up" json:"up" comment:"是否启用"`
 	Host string `yaml:"host" json:"host" comment:"ws://Ip:Port/bridge"`
 	// Prefix string `yaml:"prefix" json:"prefix" comment:"uri prefix"`
+	QueueSize  int `yaml:"queueSize" json:"queueSize" comment:"队列大小"`
+	BufferSize int `yaml:"bufferSize" json:"bufferSize" comment:"缓存大小"`
 }
 
 // To -
 func (s WebsocketConfigure) To() *websocket.WebsocketConfig {
-	return websocket.NewWebsocketConfig(s.Host)
+	return websocket.NewWebsocketConfig(s.Host, s.QueueSize, s.BufferSize)
 }
 
 // WebsocketsConfigure -
 type WebsocketsConfigure struct {
-	Up       bool   `yaml:"up" json:"up" comment:"是否启用"`
-	Host     string `yaml:"host" json:"host" comment:"ws://Ip:Port/bridge"`
-	CertFile string `yaml:"certfile" json:"certfile" comment:"certfile"`
-	KeyFile  string `yaml:"keyfile" json:"keyfile" comment:"keyfile"`
+	Up         bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host       string `yaml:"host" json:"host" comment:"ws://Ip:Port/bridge"`
+	CertFile   string `yaml:"certfile" json:"certfile" comment:"certfile"`
+	KeyFile    string `yaml:"keyfile" json:"keyfile" comment:"keyfile"`
+	QueueSize  int    `yaml:"queueSize" json:"queueSize" comment:"队列大小"`
+	BufferSize int    `yaml:"bufferSize" json:"bufferSize" comment:"缓存大小"`
 }
 
 // To -
 func (s WebsocketsConfigure) To() *websocket.WebsocketConfig {
-	return websocket.NewWebsocketTlsConfig(s.Host, s.CertFile, s.KeyFile)
+	return websocket.NewWebsocketTlsConfig(s.Host, s.CertFile, s.KeyFile, s.QueueSize, s.BufferSize)
 }
 
 type QuicConfigure struct {
-	Up       bool   `yaml:"up" json:"up" comment:"是否启用"`
-	Host     string `yaml:"host" json:"host" comment:"quic://Ip:Port"`
-	CertFile string `yaml:"certfile" json:"certfile" comment:"certfile"`
-	KeyFile  string `yaml:"keyfile" json:"keyfile" comment:"keyfile"`
+	Up         bool   `yaml:"up" json:"up" comment:"是否启用"`
+	Host       string `yaml:"host" json:"host" comment:"quic://Ip:Port"`
+	CertFile   string `yaml:"certfile" json:"certfile" comment:"certfile"`
+	KeyFile    string `yaml:"keyfile" json:"keyfile" comment:"keyfile"`
+	QueueSize  int    `yaml:"queueSize" json:"queueSize" comment:"队列大小"`
+	BufferSize int    `yaml:"bufferSize" json:"bufferSize" comment:"缓存大小"`
 }
 
 // To -
 func (s QuicConfigure) To() *quic.QuicConfig {
-	return quic.NewQuicTlsConfig(s.Host, s.CertFile, s.KeyFile)
+	return quic.NewQuicTlsConfig(s.Host, s.CertFile, s.KeyFile, s.QueueSize, s.BufferSize)
 }
 
 // DiscoveryConfigure -

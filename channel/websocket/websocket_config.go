@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+const defaultQueueSize = 100
+const defaultBufferSize = 102400
+
 // WebsocketConfig -
 type WebsocketConfig struct {
 	Scheme          string //
@@ -25,7 +28,7 @@ type WebsocketConfig struct {
 }
 
 // NewWebsocketConfig -
-func NewWebsocketConfig(host string) *WebsocketConfig {
+func NewWebsocketConfig(host string, queueSize int, bufferSize int) *WebsocketConfig {
 	u, err := url.Parse(host)
 	if err != nil {
 		fmt.Println("url parse err: ", err.Error())
@@ -36,10 +39,10 @@ func NewWebsocketConfig(host string) *WebsocketConfig {
 		Ip:              u.Hostname(),
 		Port:            u.Port(),
 		Prefix:          u.Path,
-		InChanCount:     10,
-		OutChanCount:    10,
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+		InChanCount:     queueSize, // default 10.
+		OutChanCount:    queueSize,
+		ReadBufferSize:  bufferSize, // default 1024.
+		WriteBufferSize: bufferSize, // default 1024.
 		ReadLimit:       1024 * 1024,
 		HeartTimeoutS:   30,
 		HeartCount:      3,
@@ -48,8 +51,8 @@ func NewWebsocketConfig(host string) *WebsocketConfig {
 }
 
 // NewWebsocketTlsConfig -
-func NewWebsocketTlsConfig(host string, certFile, keyFile string) *WebsocketConfig {
-	c := NewWebsocketConfig(host)
+func NewWebsocketTlsConfig(host string, certFile, keyFile string, queueSize int, bufferSize int) *WebsocketConfig {
+	c := NewWebsocketConfig(host, queueSize, bufferSize)
 	c.CertFile = certFile
 	c.KeyFile = keyFile
 	return c

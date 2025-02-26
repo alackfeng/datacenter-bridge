@@ -35,7 +35,7 @@ func TestWebsocketChannel(t *testing.T) {
 		in chan []byte
 	}
 	go func() {
-		s := websocket.NewWebsocketServer(self1, websocket.NewWebsocketConfig(url))
+		s := websocket.NewWebsocketServer(self1, websocket.NewWebsocketConfig(url, 10, 1024))
 		go func() {
 			for {
 				select {
@@ -129,7 +129,7 @@ func TestWebsocketChannel2(t *testing.T) {
 		in chan []byte
 	}
 	go func() {
-		s := websocket.NewWebsocketServer(self1, websocket.NewWebsocketTlsConfig(url, certFile, keyFile))
+		s := websocket.NewWebsocketServer(self1, websocket.NewWebsocketTlsConfig(url, certFile, keyFile, 10, 1024))
 		go func() {
 			for {
 				select {
@@ -206,7 +206,7 @@ func TestQuicChannel(t *testing.T) {
 		in chan []byte
 	}
 	go func() {
-		s := quic.NewQuicServer(self1, quic.NewQuicTlsConfig(url, certFile, keyFile))
+		s := quic.NewQuicServer(self1, quic.NewQuicTlsConfig(url, certFile, keyFile, 10, 1024))
 		go func() {
 			for {
 				select {

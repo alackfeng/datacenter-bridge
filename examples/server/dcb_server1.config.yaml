@@ -25,13 +25,19 @@ app:
     ws:
       up: true
       host: ws://127.0.0.1:9500/bridge
+      queueSize: 100
+      bufferSize: 102400
     wss:
       up: true
       host: wss://127.0.0.1:9501/bridge
       certfile: ./docs/certs/server/server.crt
       keyfile: ./docs/certs/server/server.key
+      queueSize: 100
+      bufferSize: 102400
     quic:
       up: true
       host: quic://127.0.0.1:9502
       certfile: ./docs/certs/server/server.crt
       keyfile: ./docs/certs/server/server.key
+      queueSize: 100
+      bufferSize: 102400

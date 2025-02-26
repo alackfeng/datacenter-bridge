@@ -36,7 +36,7 @@ func newQuicServerChannel(self *discovery.Service, peer *discovery.Service, conf
 
 // newQuicClientChannel -
 func newQuicClientChannel(self *discovery.Service, peer *discovery.Service) *QuicChannel {
-	return newQuicChannel(self, peer, NewQuicConfig(peer.Host), true)
+	return newQuicChannel(self, peer, NewQuicConfig(peer.Host, defaultQueueSize, defaultBufferSize), true)
 }
 
 // newQuicChannel -
